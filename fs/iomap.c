@@ -1100,11 +1100,11 @@ out_unlock:
 EXPORT_SYMBOL_GPL(iomap_page_mkwrite);
 
 struct fiemap_iomap_ctx {
-	struct fiemap_extent_info *fi;
+	struct fiemap_ctx *f_ctx;
 	struct iomap prev;
 };
 
-static int iomap_to_fiemap(struct fiemap_extent_info *fi,
+static int iomap_to_fiemap(struct fiemap_ctx *f_ctx,
 		struct iomap *iomap, u32 flags)
 {
 	switch (iomap->type) {
@@ -1129,7 +1129,7 @@ static int iomap_to_fiemap(struct fiemap_extent_info *fi,
 	if (iomap->flags & IOMAP_F_SHARED)
 		flags |= FIEMAP_EXTENT_SHARED;
 
-	return fiemap_fill_next_extent(fi, iomap->offset,
+	return f_ctx->fc_cb(f_ctx, iomap->offset,
 			iomap->addr != IOMAP_NULL_ADDR ? iomap->addr : 0,
 			iomap->length, flags);
 }
@@ -1144,7 +1144,7 @@ iomap_fiemap_actor(struct inode *inode, loff_t pos, loff_t length, void *data,
 	if (iomap->type == IOMAP_HOLE)
 		return length;
 
-	ret = iomap_to_fiemap(ctx->fi, &ctx->prev, 0);
+	ret = iomap_to_fiemap(ctx->f_ctx, &ctx->prev, 0);
 	ctx->prev = *iomap;
 	switch (ret) {
 	case 0:		/* success */
@@ -1156,17 +1156,18 @@ iomap_fiemap_actor(struct inode *inode, loff_t pos, loff_t length, void *data,
 	}
 }
 
-int iomap_fiemap(struct inode *inode, struct fiemap_extent_info *fi,
+int iomap_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx,
 		loff_t start, loff_t len, const struct iomap_ops *ops)
 {
 	struct fiemap_iomap_ctx ctx;
+	struct fiemap_extent_info *fi = f_ctx->fc_data;
 	loff_t ret;
 
 	memset(&ctx, 0, sizeof(ctx));
-	ctx.fi = fi;
+	ctx.f_ctx = f_ctx;
 	ctx.prev.type = IOMAP_HOLE;
 
-	ret = fiemap_check_flags(fi, FIEMAP_FLAG_SYNC);
+	ret = fiemap_check_flags(f_ctx, FIEMAP_FLAG_SYNC);
 	if (ret)
 		return ret;
 
@@ -1192,7 +1193,7 @@ int iomap_fiemap(struct inode *inode, struct fiemap_extent_info *fi,
 	}
 
 	if (ctx.prev.type != IOMAP_HOLE) {
-		ret = iomap_to_fiemap(fi, &ctx.prev, FIEMAP_EXTENT_LAST);
+		ret = iomap_to_fiemap(f_ctx, &ctx.prev, FIEMAP_EXTENT_LAST);
 		if (ret < 0)
 			return ret;
 	}

@@ -2004,9 +2004,10 @@ static int gfs2_getattr(const struct path *path, struct kstat *stat,
 	return 0;
 }
 
-static int gfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
-		       u64 start, u64 len)
+static int gfs2_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx)
 {
+	u64 start = f_ctx->fc_start;
+	u64 len = f_ctx->fc_len;
 	struct gfs2_inode *ip = GFS2_I(inode);
 	struct gfs2_holder gh;
 	int ret;
@@ -2017,7 +2018,7 @@ static int gfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
 	if (ret)
 		goto out;
 
-	ret = iomap_fiemap(inode, fieinfo, start, len, &gfs2_iomap_ops);
+	ret = iomap_fiemap(inode, f_ctx, start, len, &gfs2_iomap_ops);
 
 	gfs2_glock_dq_uninit(&gh);
 

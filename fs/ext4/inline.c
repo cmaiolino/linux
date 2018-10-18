@@ -1854,7 +1854,7 @@ out:
 }
 
 int ext4_inline_data_fiemap(struct inode *inode,
-			    struct fiemap_extent_info *fieinfo,
+			    struct fiemap_ctx *f_ctx,
 			    int *has_inline, __u64 start, __u64 len)
 {
 	__u64 physical = 0;
@@ -1886,7 +1886,7 @@ int ext4_inline_data_fiemap(struct inode *inode,
 	physical += offsetof(struct ext4_inode, i_block);
 
 	if (physical)
-		error = fiemap_fill_next_extent(fieinfo, start, physical,
+		error = f_ctx->fc_cb(f_ctx, start, physical,
 						inline_len, flags);
 	brelse(iloc.bh);
 out:

@@ -70,7 +70,7 @@ static int ioctl_fibmap(struct file *filp, int __user *p)
 
 /**
  * fiemap_fill_next_extent - Fiemap helper function
- * @fieinfo:	Fiemap context passed into ->fiemap
+ * @f_ctx:	Fiemap context passed into ->fiemap
  * @logical:	Extent logical start offset, in bytes
  * @phys:	Extent physical start offset, in bytes
  * @len:	Extent length, in bytes
@@ -86,9 +86,10 @@ static int ioctl_fibmap(struct file *filp, int __user *p)
 #define SET_UNKNOWN_FLAGS	(FIEMAP_EXTENT_DELALLOC)
 #define SET_NO_UNMOUNTED_IO_FLAGS	(FIEMAP_EXTENT_DATA_ENCRYPTED)
 #define SET_NOT_ALIGNED_FLAGS	(FIEMAP_EXTENT_DATA_TAIL|FIEMAP_EXTENT_DATA_INLINE)
-int fiemap_fill_next_extent(struct fiemap_extent_info *fieinfo, u64 logical,
+int fiemap_fill_next_extent(struct fiemap_ctx *f_ctx, u64 logical,
 			    u64 phys, u64 len, u32 flags)
 {
+	struct fiemap_extent_info *fieinfo = f_ctx->fc_data;
 	struct fiemap_extent extent;
 	struct fiemap_extent __user *dest = fieinfo->fi_extents_start;
 
@@ -139,8 +140,9 @@ EXPORT_SYMBOL(fiemap_fill_next_extent);
  *
  * Returns 0 on success, -EBADR on bad flags.
  */
-int fiemap_check_flags(struct fiemap_extent_info *fieinfo, u32 fs_flags)
+int fiemap_check_flags(struct fiemap_ctx *f_ctx, u32 fs_flags)
 {
+	struct fiemap_extent_info *fieinfo = f_ctx->fc_data;
 	u32 incompat_flags;
 
 	incompat_flags = fieinfo->fi_flags & ~(FIEMAP_FLAGS_COMPAT & fs_flags);
@@ -181,6 +183,7 @@ static int ioctl_fiemap(struct file *filp, unsigned long arg)
 	struct fiemap_extent_info fieinfo = { 0, };
 	struct inode *inode = file_inode(filp);
 	struct super_block *sb = inode->i_sb;
+	struct fiemap_ctx f_ctx;
 	u64 len;
 	int error;
 
@@ -207,10 +210,16 @@ static int ioctl_fiemap(struct file *filp, unsigned long arg)
 		       fieinfo.fi_extents_max * sizeof(struct fiemap_extent)))
 		return -EFAULT;
 
+	f_ctx.fc_cb = fiemap_fill_next_extent;
+	f_ctx.fc_flags = fieinfo.fi_flags;
+	f_ctx.fc_data = &fieinfo;
+	f_ctx.fc_start = fiemap.fm_start;
+	f_ctx.fc_len = len;
+
 	if (fieinfo.fi_flags & FIEMAP_FLAG_SYNC)
 		filemap_write_and_wait(inode->i_mapping);
 
-	error = inode->i_op->fiemap(inode, &fieinfo, fiemap.fm_start, len);
+	error = inode->i_op->fiemap(inode, &f_ctx);
 	fiemap.fm_flags = fieinfo.fi_flags;
 	fiemap.fm_mapped_extents = fieinfo.fi_extents_mapped;
 	if (copy_to_user(ufiemap, &fiemap, sizeof(fiemap)))
@@ -279,9 +288,11 @@ static inline loff_t blk_to_logical(struct inode *inode, sector_t blk)
  */
 
 int __generic_block_fiemap(struct inode *inode,
-			   struct fiemap_extent_info *fieinfo, loff_t start,
-			   loff_t len, get_block_t *get_block)
+			   struct fiemap_ctx *f_ctx,
+			   get_block_t *get_block)
 {
+	loff_t start = f_ctx->fc_start;
+	loff_t len = f_ctx->fc_len;
 	struct buffer_head map_bh;
 	sector_t start_blk, last_blk;
 	loff_t isize = i_size_read(inode);
@@ -290,7 +301,7 @@ int __generic_block_fiemap(struct inode *inode,
 	bool past_eof = false, whole_file = false;
 	int ret = 0;
 
-	ret = fiemap_check_flags(fieinfo, FIEMAP_FLAG_SYNC);
+	ret = fiemap_check_flags(f_ctx, FIEMAP_FLAG_SYNC);
 	if (ret)
 		return ret;
 
@@ -347,12 +358,11 @@ int __generic_block_fiemap(struct inode *inode,
 			 */
 			if (past_eof && size) {
 				flags = FIEMAP_EXTENT_MERGED|FIEMAP_EXTENT_LAST;
-				ret = fiemap_fill_next_extent(fieinfo, logical,
-							      phys, size,
-							      flags);
+				ret = f_ctx->fc_cb(f_ctx, logical, phys, size,
+						   flags);
 			} else if (size) {
-				ret = fiemap_fill_next_extent(fieinfo, logical,
-							      phys, size, flags);
+				ret = f_ctx->fc_cb(f_ctx, logical, phys, size,
+						   flags);
 				size = 0;
 			}
 
@@ -376,9 +386,8 @@ int __generic_block_fiemap(struct inode *inode,
 			 * and break
 			 */
 			if (start_blk > last_blk && !whole_file) {
-				ret = fiemap_fill_next_extent(fieinfo, logical,
-							      phys, size,
-							      flags);
+				ret = f_ctx->fc_cb(f_ctx, logical, phys, size,
+						   flags);
 				break;
 			}
 
@@ -387,9 +396,8 @@ int __generic_block_fiemap(struct inode *inode,
 			 * to add, so add it.
 			 */
 			if (size) {
-				ret = fiemap_fill_next_extent(fieinfo, logical,
-							      phys, size,
-							      flags);
+				ret = f_ctx->fc_cb(f_ctx, logical, phys, size,
+						   flags);
 				if (ret)
 					break;
 			}
@@ -438,12 +446,12 @@ EXPORT_SYMBOL(__generic_block_fiemap);
  */
 
 int generic_block_fiemap(struct inode *inode,
-			 struct fiemap_extent_info *fieinfo, u64 start,
-			 u64 len, get_block_t *get_block)
+			 struct fiemap_ctx *f_ctx,
+			 get_block_t *get_block)
 {
 	int ret;
 	inode_lock(inode);
-	ret = __generic_block_fiemap(inode, fieinfo, start, len, get_block);
+	ret = __generic_block_fiemap(inode, f_ctx, get_block);
 	inode_unlock(inode);
 	return ret;
 }

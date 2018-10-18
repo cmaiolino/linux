@@ -1001,9 +1001,10 @@ void nilfs_dirty_inode(struct inode *inode, int flags)
 	nilfs_transaction_commit(inode->i_sb); /* never fails */
 }
 
-int nilfs_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
-		 __u64 start, __u64 len)
+int nilfs_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx)
 {
+	u64 start = f_ctx->fc_start;
+	u64 len = f_ctx->fc_len;
 	struct the_nilfs *nilfs = inode->i_sb->s_fs_info;
 	__u64 logical = 0, phys = 0, size = 0;
 	__u32 flags = 0;
@@ -1014,7 +1015,7 @@ int nilfs_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
 	unsigned int blkbits = inode->i_blkbits;
 	int ret, n;
 
-	ret = fiemap_check_flags(fieinfo, FIEMAP_FLAG_SYNC);
+	ret = fiemap_check_flags(f_ctx, FIEMAP_FLAG_SYNC);
 	if (ret)
 		return ret;
 
@@ -1035,8 +1036,8 @@ int nilfs_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
 		if (delalloc_blklen && blkoff == delalloc_blkoff) {
 			if (size) {
 				/* End of the current extent */
-				ret = fiemap_fill_next_extent(
-					fieinfo, logical, phys, size, flags);
+				ret = f_ctx->fc_cb(
+					f_ctx, logical, phys, size, flags);
 				if (ret)
 					break;
 			}
@@ -1085,8 +1086,8 @@ int nilfs_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
 				if (past_eof)
 					flags |= FIEMAP_EXTENT_LAST;
 
-				ret = fiemap_fill_next_extent(
-					fieinfo, logical, phys, size, flags);
+				ret = f_ctx->fc_cb(
+					f_ctx, logical, phys, size, flags);
 				if (ret)
 					break;
 				size = 0;
@@ -1100,8 +1101,8 @@ int nilfs_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
 					size += n << blkbits;
 				} else {
 					/* Terminate the current extent */
-					ret = fiemap_fill_next_extent(
-						fieinfo, logical, phys, size,
+					ret = f_ctx->fc_cb(
+						f_ctx, logical, phys, size,
 						flags);
 					if (ret || blkoff > end_blkoff)
 						break;

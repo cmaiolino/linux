@@ -4325,7 +4325,7 @@ struct fiemap_cache {
  *
  * Return value is the same as fiemap_fill_next_extent().
  */
-static int emit_fiemap_extent(struct fiemap_extent_info *fieinfo,
+static int emit_fiemap_extent(struct fiemap_ctx *f_ctx,
 				struct fiemap_cache *cache,
 				u64 offset, u64 phys, u64 len, u32 flags)
 {
@@ -4367,7 +4367,7 @@ static int emit_fiemap_extent(struct fiemap_extent_info *fieinfo,
 	}
 
 	/* Not mergeable, need to submit cached one */
-	ret = fiemap_fill_next_extent(fieinfo, cache->offset, cache->phys,
+	ret = f_ctx->fc_cb(f_ctx, cache->offset, cache->phys,
 				      cache->len, cache->flags);
 	cache->cached = false;
 	if (ret)
@@ -4380,7 +4380,7 @@ assign:
 	cache->flags = flags;
 try_submit_last:
 	if (cache->flags & FIEMAP_EXTENT_LAST) {
-		ret = fiemap_fill_next_extent(fieinfo, cache->offset,
+		ret = f_ctx->fc_cb(f_ctx, cache->offset,
 				cache->phys, cache->len, cache->flags);
 		cache->cached = false;
 	}
@@ -4399,7 +4399,7 @@ try_submit_last:
  * So we must emit it before ending extent_fiemap().
  */
 static int emit_last_fiemap_cache(struct btrfs_fs_info *fs_info,
-				  struct fiemap_extent_info *fieinfo,
+				  struct fiemap_ctx *f_ctx,
 				  struct fiemap_cache *cache)
 {
 	int ret;
@@ -4407,7 +4407,7 @@ static int emit_last_fiemap_cache(struct btrfs_fs_info *fs_info,
 	if (!cache->cached)
 		return 0;
 
-	ret = fiemap_fill_next_extent(fieinfo, cache->offset, cache->phys,
+	ret = f_ctx->fc_cb(f_ctx, cache->offset, cache->phys,
 				      cache->len, cache->flags);
 	cache->cached = false;
 	if (ret > 0)
@@ -4415,7 +4415,7 @@ static int emit_last_fiemap_cache(struct btrfs_fs_info *fs_info,
 	return ret;
 }
 
-int extent_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
+int extent_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx,
 		__u64 start, __u64 len)
 {
 	int ret = 0;
@@ -4433,6 +4433,7 @@ int extent_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
 	struct btrfs_path *path;
 	struct btrfs_root *root = BTRFS_I(inode)->root;
 	struct fiemap_cache cache = { 0 };
+	struct fiemap_extent_info *fieinfo = f_ctx->fc_data;
 	int end = 0;
 	u64 em_start = 0;
 	u64 em_len = 0;
@@ -4596,7 +4597,7 @@ int extent_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
 			flags |= FIEMAP_EXTENT_LAST;
 			end = 1;
 		}
-		ret = emit_fiemap_extent(fieinfo, &cache, em_start, disko,
+		ret = emit_fiemap_extent(f_ctx, &cache, em_start, disko,
 					   em_len, flags);
 		if (ret) {
 			if (ret == 1)
@@ -4606,7 +4607,7 @@ int extent_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
 	}
 out_free:
 	if (!ret)
-		ret = emit_last_fiemap_cache(root->fs_info, fieinfo, &cache);
+		ret = emit_last_fiemap_cache(root->fs_info, f_ctx, &cache);
 	free_extent_map(em);
 out:
 	btrfs_free_path(path);

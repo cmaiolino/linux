@@ -2151,8 +2151,9 @@ cleanup:
 
 static int ext4_fill_fiemap_extents(struct inode *inode,
 				    ext4_lblk_t block, ext4_lblk_t num,
-				    struct fiemap_extent_info *fieinfo)
+				    struct fiemap_ctx *f_ctx)
 {
+
 	struct ext4_ext_path *path = NULL;
 	struct ext4_extent *ex;
 	struct extent_status es;
@@ -2277,7 +2278,7 @@ static int ext4_fill_fiemap_extents(struct inode *inode,
 		}
 
 		if (exists) {
-			err = fiemap_fill_next_extent(fieinfo,
+			err = f_ctx->fc_cb(f_ctx,
 				(__u64)es.es_lblk << blksize_bits,
 				(__u64)es.es_pblk << blksize_bits,
 				(__u64)es.es_len << blksize_bits,
@@ -5109,7 +5110,7 @@ static int ext4_find_delayed_extent(struct inode *inode,
 #define EXT4_FIEMAP_FLAGS	(FIEMAP_FLAG_SYNC|FIEMAP_FLAG_XATTR)
 
 static int ext4_xattr_fiemap(struct inode *inode,
-				struct fiemap_extent_info *fieinfo)
+				struct fiemap_ctx *f_ctx)
 {
 	__u64 physical = 0;
 	__u64 length;
@@ -5138,21 +5139,23 @@ static int ext4_xattr_fiemap(struct inode *inode,
 	}
 
 	if (physical)
-		error = fiemap_fill_next_extent(fieinfo, 0, physical,
+		error = f_ctx->fc_cb(f_ctx, 0, physical,
 						length, flags);
 	return (error < 0 ? error : 0);
 }
 
-int ext4_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
-		__u64 start, __u64 len)
+int ext4_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx)
 {
+	struct fiemap_extent_info *fieinfo = f_ctx->fc_data;
+	u64 start = f_ctx->fc_start;
+	u64 len = f_ctx->fc_len;
 	ext4_lblk_t start_blk;
 	int error = 0;
 
 	if (ext4_has_inline_data(inode)) {
 		int has_inline = 1;
 
-		error = ext4_inline_data_fiemap(inode, fieinfo, &has_inline,
+		error = ext4_inline_data_fiemap(inode, f_ctx, &has_inline,
 						start, len);
 
 		if (has_inline)
@@ -5167,14 +5170,13 @@ int ext4_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
 
 	/* fallback to generic here if not in extents fmt */
 	if (!(ext4_test_inode_flag(inode, EXT4_INODE_EXTENTS)))
-		return generic_block_fiemap(inode, fieinfo, start, len,
-			ext4_get_block);
+		return generic_block_fiemap(inode, f_ctx, ext4_get_block);
 
-	if (fiemap_check_flags(fieinfo, EXT4_FIEMAP_FLAGS))
+	if (fiemap_check_flags(f_ctx, EXT4_FIEMAP_FLAGS))
 		return -EBADR;
 
 	if (fieinfo->fi_flags & FIEMAP_FLAG_XATTR) {
-		error = ext4_xattr_fiemap(inode, fieinfo);
+		error = ext4_xattr_fiemap(inode, f_ctx);
 	} else {
 		ext4_lblk_t len_blks;
 		__u64 last_blk;
@@ -5190,7 +5192,7 @@ int ext4_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
 		 * and pushing extents back to the user.
 		 */
 		error = ext4_fill_fiemap_extents(inode, start_blk,
-						 len_blks, fieinfo);
+						 len_blks, f_ctx);
 	}
 	return error;
 }

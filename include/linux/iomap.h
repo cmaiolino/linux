@@ -142,7 +142,7 @@ int iomap_zero_range(struct inode *inode, loff_t pos, loff_t len,
 int iomap_truncate_page(struct inode *inode, loff_t pos, bool *did_zero,
 		const struct iomap_ops *ops);
 int iomap_page_mkwrite(struct vm_fault *vmf, const struct iomap_ops *ops);
-int iomap_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
+int iomap_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx,
 		loff_t start, loff_t len, const struct iomap_ops *ops);
 loff_t iomap_seek_hole(struct inode *inode, loff_t offset,
 		const struct iomap_ops *ops);

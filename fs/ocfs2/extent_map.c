@@ -714,7 +714,7 @@ out:
  * mapping per se.
  */
 static int ocfs2_fiemap_inline(struct inode *inode, struct buffer_head *di_bh,
-			       struct fiemap_extent_info *fieinfo,
+			       struct fiemap_ctx *f_ctx,
 			       u64 map_start)
 {
 	int ret;
@@ -738,7 +738,7 @@ static int ocfs2_fiemap_inline(struct inode *inode, struct buffer_head *di_bh,
 			phys += offsetof(struct ocfs2_dinode,
 					 id2.i_data.id_data);
 
-		ret = fiemap_fill_next_extent(fieinfo, 0, phys, id_count,
+		ret = f_ctx->fc_cb(f_ctx, 0, phys, id_count,
 					      flags);
 		if (ret < 0)
 			return ret;
@@ -749,9 +749,10 @@ static int ocfs2_fiemap_inline(struct inode *inode, struct buffer_head *di_bh,
 
 #define OCFS2_FIEMAP_FLAGS	(FIEMAP_FLAG_SYNC)
 
-int ocfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
-		 u64 map_start, u64 map_len)
+int ocfs2_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx)
 {
+	u64 map_start = f_ctx->fc_start;
+	u64 map_len = f_ctx->fc_len;
 	int ret, is_last;
 	u32 mapping_end, cpos;
 	unsigned int hole_size;
@@ -760,7 +761,7 @@ int ocfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
 	struct buffer_head *di_bh = NULL;
 	struct ocfs2_extent_rec rec;
 
-	ret = fiemap_check_flags(fieinfo, OCFS2_FIEMAP_FLAGS);
+	ret = fiemap_check_flags(f_ctx, OCFS2_FIEMAP_FLAGS);
 	if (ret)
 		return ret;
 
@@ -777,7 +778,7 @@ int ocfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
 	 */
 	if ((OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) ||
 	    ocfs2_inode_is_fast_symlink(inode)) {
-		ret = ocfs2_fiemap_inline(inode, di_bh, fieinfo, map_start);
+		ret = ocfs2_fiemap_inline(inode, di_bh, f_ctx, map_start);
 		goto out_unlock;
 	}
 
@@ -811,7 +812,7 @@ int ocfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
 		phys_bytes = le64_to_cpu(rec.e_blkno) << osb->sb->s_blocksize_bits;
 		virt_bytes = (u64)le32_to_cpu(rec.e_cpos) << osb->s_clustersize_bits;
 
-		ret = fiemap_fill_next_extent(fieinfo, virt_bytes, phys_bytes,
+		ret = f_ctx->fc_cb(f_ctx, virt_bytes, phys_bytes,
 					      len_bytes, fe_flags);
 		if (ret)
 			break;

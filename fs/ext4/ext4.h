@@ -3012,7 +3012,7 @@ extern struct buffer_head *ext4_get_first_inline_block(struct inode *inode,
 					struct ext4_dir_entry_2 **parent_de,
 					int *retval);
 extern int ext4_inline_data_fiemap(struct inode *inode,
-				   struct fiemap_extent_info *fieinfo,
+				   struct fiemap_ctx *f_ctx,
 				   int *has_inline, __u64 start, __u64 len);
 
 struct iomap;
@@ -3133,8 +3133,7 @@ extern int ext4_find_delalloc_range(struct inode *inode,
 				    ext4_lblk_t lblk_end);
 extern int ext4_find_delalloc_cluster(struct inode *inode, ext4_lblk_t lblk);
 extern ext4_lblk_t ext4_ext_next_allocated_block(struct ext4_ext_path *path);
-extern int ext4_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
-			__u64 start, __u64 len);
+extern int ext4_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx);
 extern int ext4_ext_precache(struct inode *inode);
 extern int ext4_collapse_range(struct inode *inode, loff_t offset, loff_t len);
 extern int ext4_insert_range(struct inode *inode, loff_t offset, loff_t len);

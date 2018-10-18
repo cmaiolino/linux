@@ -1083,19 +1083,20 @@ xfs_vn_update_time(
 STATIC int
 xfs_vn_fiemap(
 	struct inode		*inode,
-	struct fiemap_extent_info *fieinfo,
-	u64			start,
-	u64			length)
+	struct fiemap_ctx	*f_ctx)
 {
+	struct fiemap_extent_info *fieinfo = f_ctx->fc_data;
+	u64			start = f_ctx->fc_start;
+	u64			length = f_ctx->fc_len;
 	int			error;
 
 	xfs_ilock(XFS_I(inode), XFS_IOLOCK_SHARED);
 	if (fieinfo->fi_flags & FIEMAP_FLAG_XATTR) {
 		fieinfo->fi_flags &= ~FIEMAP_FLAG_XATTR;
-		error = iomap_fiemap(inode, fieinfo, start, length,
+		error = iomap_fiemap(inode, f_ctx, start, length,
 				&xfs_xattr_iomap_ops);
 	} else {
-		error = iomap_fiemap(inode, fieinfo, start, length,
+		error = iomap_fiemap(inode, f_ctx, start, length,
 				&xfs_iomap_ops);
 	}
 	xfs_iunlock(XFS_I(inode), XFS_IOLOCK_SHARED);

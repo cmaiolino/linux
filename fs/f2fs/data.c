@@ -1283,7 +1283,7 @@ static inline loff_t blk_to_logical(struct inode *inode, sector_t blk)
 }
 
 static int f2fs_xattr_fiemap(struct inode *inode,
-				struct fiemap_extent_info *fieinfo)
+				struct fiemap_ctx *f_ctx)
 {
 	struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
 	struct page *page;
@@ -1322,7 +1322,7 @@ static int f2fs_xattr_fiemap(struct inode *inode,
 		if (!xnid)
 			flags |= FIEMAP_EXTENT_LAST;
 
-		err = fiemap_fill_next_extent(fieinfo, 0, phys, len, flags);
+		err = f_ctx->fc_cb(f_ctx, 0, phys, len, flags);
 		if (err || err == 1)
 			return err;
 	}
@@ -1347,14 +1347,16 @@ static int f2fs_xattr_fiemap(struct inode *inode,
 	}
 
 	if (phys)
-		err = fiemap_fill_next_extent(fieinfo, 0, phys, len, flags);
+		err = f_ctx->fc_cb(f_ctx, 0, phys, len, flags);
 
 	return (err < 0 ? err : 0);
 }
 
-int f2fs_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
-		u64 start, u64 len)
+int f2fs_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx)
 {
+	struct fiemap_extent_info *fieinfo = f_ctx->fc_data;
+	u64 start = f_ctx->fc_start;
+	u64 len = f_ctx->fc_len;
 	struct buffer_head map_bh;
 	sector_t start_blk, last_blk;
 	pgoff_t next_pgofs;
@@ -1368,19 +1370,19 @@ int f2fs_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
 			return ret;
 	}
 
-	ret = fiemap_check_flags(fieinfo, FIEMAP_FLAG_SYNC | FIEMAP_FLAG_XATTR);
+	ret = fiemap_check_flags(f_ctx, FIEMAP_FLAG_SYNC | FIEMAP_FLAG_XATTR);
 	if (ret)
 		return ret;
 
 	inode_lock(inode);
 
 	if (fieinfo->fi_flags & FIEMAP_FLAG_XATTR) {
-		ret = f2fs_xattr_fiemap(inode, fieinfo);
+		ret = f2fs_xattr_fiemap(inode, f_ctx);
 		goto out;
 	}
 
 	if (f2fs_has_inline_data(inode)) {
-		ret = f2fs_inline_data_fiemap(inode, fieinfo, start, len);
+		ret = f2fs_inline_data_fiemap(inode, f_ctx, start, len);
 		if (ret != -EAGAIN)
 			goto out;
 	}
@@ -1415,7 +1417,7 @@ next:
 		if (f2fs_encrypted_inode(inode))
 			flags |= FIEMAP_EXTENT_DATA_ENCRYPTED;
 
-		ret = fiemap_fill_next_extent(fieinfo, logical,
+		ret = f_ctx->fc_cb(f_ctx, logical,
 				phys, size, flags);
 	}
 
