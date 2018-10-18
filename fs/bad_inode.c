@@ -119,9 +119,7 @@ static struct posix_acl *bad_inode_get_acl(struct inode *inode, int type)
 	return ERR_PTR(-EIO);
 }
 
-static int bad_inode_fiemap(struct inode *inode,
-			    struct fiemap_extent_info *fieinfo, u64 start,
-			    u64 len)
+static int bad_inode_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx)
 {
 	return -EIO;
 }
