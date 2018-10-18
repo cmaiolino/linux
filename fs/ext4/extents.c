@@ -5045,9 +5045,11 @@ static int ext4_xattr_fiemap(struct inode *inode,
 	return (error < 0 ? error : 0);
 }
 
-int ext4_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
-		__u64 start, __u64 len)
+int ext4_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx)
 {
+	struct fiemap_extent_info *fieinfo = f_ctx->fc_data;
+	u64 start = f_ctx->fc_start;
+	u64 len = f_ctx->fc_len;
 	ext4_lblk_t start_blk;
 	int error = 0;
 
@@ -5069,8 +5071,7 @@ int ext4_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
 
 	/* fallback to generic here if not in extents fmt */
 	if (!(ext4_test_inode_flag(inode, EXT4_INODE_EXTENTS)))
-		return generic_block_fiemap(inode, fieinfo, start, len,
-			ext4_get_block);
+		return generic_block_fiemap(inode, f_ctx, ext4_get_block);
 
 	if (fiemap_check_flags(fieinfo, EXT4_FIEMAP_FLAGS))
 		return -EBADR;

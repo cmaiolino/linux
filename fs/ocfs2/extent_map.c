@@ -749,9 +749,11 @@ static int ocfs2_fiemap_inline(struct inode *inode, struct buffer_head *di_bh,
 
 #define OCFS2_FIEMAP_FLAGS	(FIEMAP_FLAG_SYNC)
 
-int ocfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
-		 u64 map_start, u64 map_len)
+int ocfs2_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx)
 {
+	struct fiemap_extent_info *fieinfo = f_ctx->fc_data;
+	u64 map_start = f_ctx->fc_start;
+	u64 map_len = f_ctx->fc_len;
 	int ret, is_last;
 	u32 mapping_end, cpos;
 	unsigned int hole_size;

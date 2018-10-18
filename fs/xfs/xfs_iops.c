@@ -1093,11 +1093,12 @@ xfs_vn_update_time(
 STATIC int
 xfs_vn_fiemap(
 	struct inode		*inode,
-	struct fiemap_extent_info *fieinfo,
-	u64			start,
-	u64			length)
+	struct fiemap_ctx	*f_ctx)
 {
-	int			error;
+	struct fiemap_extent_info *fieinfo = f_ctx->fc_data;
+	u64 start  = f_ctx->fc_start;
+	u64 length = f_ctx->fc_len;
+	int error;
 
 	xfs_ilock(XFS_I(inode), XFS_IOLOCK_SHARED);
 	if (fieinfo->fi_flags & FIEMAP_FLAG_XATTR) {

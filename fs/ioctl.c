@@ -181,6 +181,7 @@ static int ioctl_fiemap(struct file *filp, unsigned long arg)
 	struct fiemap_extent_info fieinfo = { 0, };
 	struct inode *inode = file_inode(filp);
 	struct super_block *sb = inode->i_sb;
+	struct fiemap_ctx f_ctx;
 	u64 len;
 	int error;
 
@@ -210,7 +211,12 @@ static int ioctl_fiemap(struct file *filp, unsigned long arg)
 	if (fieinfo.fi_flags & FIEMAP_FLAG_SYNC)
 		filemap_write_and_wait(inode->i_mapping);
 
-	error = inode->i_op->fiemap(inode, &fieinfo, fiemap.fm_start, len);
+	f_ctx.fc_flags = fieinfo.fi_flags;
+	f_ctx.fc_data = &fieinfo;
+	f_ctx.fc_start = fiemap.fm_start;
+	f_ctx.fc_len = len;
+
+	error = inode->i_op->fiemap(inode, &f_ctx);
 	fiemap.fm_flags = fieinfo.fi_flags;
 	fiemap.fm_mapped_extents = fieinfo.fi_extents_mapped;
 	if (copy_to_user(ufiemap, &fiemap, sizeof(fiemap)))
@@ -278,10 +284,12 @@ static inline loff_t blk_to_logical(struct inode *inode, sector_t blk)
  * generic_block_fiemap if you want the locking done for you.
  */
 
-int __generic_block_fiemap(struct inode *inode,
-			   struct fiemap_extent_info *fieinfo, loff_t start,
-			   loff_t len, get_block_t *get_block)
+int __generic_block_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx,
+			   get_block_t *get_block)
 {
+	struct fiemap_extent_info *fieinfo = f_ctx->fc_data;
+	loff_t start = f_ctx->fc_start;
+	loff_t len = f_ctx->fc_len;
 	struct buffer_head map_bh;
 	sector_t start_blk, last_blk;
 	loff_t isize = i_size_read(inode);
@@ -437,13 +445,12 @@ EXPORT_SYMBOL(__generic_block_fiemap);
  * the inode's mutex lock.
  */
 
-int generic_block_fiemap(struct inode *inode,
-			 struct fiemap_extent_info *fieinfo, u64 start,
-			 u64 len, get_block_t *get_block)
+int generic_block_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx,
+			 get_block_t *get_block)
 {
 	int ret;
 	inode_lock(inode);
-	ret = __generic_block_fiemap(inode, fieinfo, start, len, get_block);
+	ret = __generic_block_fiemap(inode, f_ctx, get_block);
 	inode_unlock(inode);
 	return ret;
 }

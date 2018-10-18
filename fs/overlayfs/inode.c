@@ -456,9 +456,9 @@ int ovl_update_time(struct inode *inode, struct timespec64 *ts, int flags)
 	return 0;
 }
 
-static int ovl_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
-		      u64 start, u64 len)
+static int ovl_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx)
 {
+	struct fiemap_extent_info *fieinfo = f_ctx->fc_data;
 	int err;
 	struct inode *realinode = ovl_inode_real(inode);
 	const struct cred *old_cred;
@@ -471,7 +471,7 @@ static int ovl_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
 	if (fieinfo->fi_flags & FIEMAP_FLAG_SYNC)
 		filemap_write_and_wait(realinode->i_mapping);
 
-	err = realinode->i_op->fiemap(realinode, fieinfo, start, len);
+	err = realinode->i_op->fiemap(realinode, f_ctx);
 	revert_creds(old_cred);
 
 	return err;

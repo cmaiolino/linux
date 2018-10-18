@@ -1397,9 +1397,11 @@ static int f2fs_xattr_fiemap(struct inode *inode,
 	return (err < 0 ? err : 0);
 }
 
-int f2fs_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
-		u64 start, u64 len)
+int f2fs_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx)
 {
+	struct fiemap_extent_info *fieinfo = f_ctx->fc_data;
+	u64 start = f_ctx->fc_start;
+	u64 len = f_ctx->fc_len;
 	struct buffer_head map_bh;
 	sector_t start_blk, last_blk;
 	pgoff_t next_pgofs;
