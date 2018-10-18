@@ -1098,7 +1098,7 @@ out_unlock:
 }
 EXPORT_SYMBOL_GPL(iomap_page_mkwrite);
 
-struct fiemap_ctx {
+struct fiemap_iomap_ctx {
 	struct fiemap_extent_info *fi;
 	struct iomap prev;
 };
@@ -1137,7 +1137,7 @@ static loff_t
 iomap_fiemap_actor(struct inode *inode, loff_t pos, loff_t length, void *data,
 		struct iomap *iomap)
 {
-	struct fiemap_ctx *ctx = data;
+	struct fiemap_iomap_ctx *ctx = data;
 	loff_t ret = length;
 
 	if (iomap->type == IOMAP_HOLE)
@@ -1158,7 +1158,7 @@ iomap_fiemap_actor(struct inode *inode, loff_t pos, loff_t length, void *data,
 int iomap_fiemap(struct inode *inode, struct fiemap_extent_info *fi,
 		loff_t start, loff_t len, const struct iomap_ops *ops)
 {
-	struct fiemap_ctx ctx;
+	struct fiemap_iomap_ctx ctx;
 	loff_t ret;
 
 	memset(&ctx, 0, sizeof(ctx));
