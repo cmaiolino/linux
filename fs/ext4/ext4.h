@@ -3023,7 +3023,7 @@ extern struct buffer_head *ext4_get_first_inline_block(struct inode *inode,
 					struct ext4_dir_entry_2 **parent_de,
 					int *retval);
 extern int ext4_inline_data_fiemap(struct inode *inode,
-				   struct fiemap_extent_info *fieinfo,
+				   struct fiemap_ctx *f_ctx,
 				   int *has_inline, __u64 start, __u64 len);
 
 struct iomap;
