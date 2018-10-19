@@ -3354,9 +3354,7 @@ void f2fs_delete_inline_entry(struct f2fs_dir_entry *dentry,
 bool f2fs_empty_inline_dir(struct inode *dir);
 int f2fs_read_inline_dir(struct file *file, struct dir_context *ctx,
 			struct fscrypt_str *fstr);
-int f2fs_inline_data_fiemap(struct inode *inode,
-			struct fiemap_extent_info *fieinfo,
-			__u64 start, __u64 len);
+int f2fs_inline_data_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx);
 
 /*
  * shrinker.c

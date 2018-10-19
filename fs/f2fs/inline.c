@@ -671,9 +671,10 @@ int f2fs_read_inline_dir(struct file *file, struct dir_context *ctx,
 	return err < 0 ? err : 0;
 }
 
-int f2fs_inline_data_fiemap(struct inode *inode,
-		struct fiemap_extent_info *fieinfo, __u64 start, __u64 len)
+int f2fs_inline_data_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx)
 {
+	u64 start = f_ctx->fc_start;
+	u64 len = f_ctx->fc_len;
 	__u64 byteaddr, ilen;
 	__u32 flags = FIEMAP_EXTENT_DATA_INLINE | FIEMAP_EXTENT_NOT_ALIGNED |
 		FIEMAP_EXTENT_LAST;
@@ -704,7 +705,10 @@ int f2fs_inline_data_fiemap(struct inode *inode,
 	byteaddr = (__u64)ni.blk_addr << inode->i_sb->s_blocksize_bits;
 	byteaddr += (char *)inline_data_addr(inode, ipage) -
 					(char *)F2FS_INODE(ipage);
-	err = fiemap_fill_next_extent(fieinfo, start, byteaddr, ilen, flags);
+	err = fiemap_fill_next_extent(
+			(struct fiemap_extent_info *)f_ctx->fc_data,
+			start, byteaddr, ilen, flags);
+
 out:
 	f2fs_put_page(ipage, 1);
 	return err;
