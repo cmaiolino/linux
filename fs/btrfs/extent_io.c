@@ -4373,9 +4373,8 @@ static int emit_fiemap_extent(struct fiemap_ctx *f_ctx,
 	}
 
 	/* Not mergeable, need to submit cached one */
-	ret = fiemap_fill_next_extent(
-			(struct fiemap_extent_info *)f_ctx->fc_data,
-			cache->offset, cache->phys, cache->len, cache->flags);
+	ret = fiemap_fill_next_extent(f_ctx, cache->offset, cache->phys,
+				      cache->len, cache->flags);
 	cache->cached = false;
 	if (ret)
 		return ret;
@@ -4387,10 +4386,8 @@ assign:
 	cache->flags = flags;
 try_submit_last:
 	if (cache->flags & FIEMAP_EXTENT_LAST) {
-		ret = fiemap_fill_next_extent(
-				(struct fiemap_extent_info *)f_ctx->fc_data,
-				cache->offset, cache->phys, cache->len,
-				cache->flags);
+		ret = fiemap_fill_next_extent(f_ctx, cache->offset, cache->phys,
+					      cache->len, cache->flags);
 		cache->cached = false;
 	}
 	return ret;
@@ -4416,9 +4413,8 @@ static int emit_last_fiemap_cache(struct btrfs_fs_info *fs_info,
 	if (!cache->cached)
 		return 0;
 
-	ret = fiemap_fill_next_extent(
-			(struct fiemap_extent_info *)f_ctx->fc_data,
-			cache->offset, cache->phys, cache->len, cache->flags);
+	ret = fiemap_fill_next_extent(f_ctx, cache->offset, cache->phys,
+				      cache->len, cache->flags);
 	cache->cached = false;
 	if (ret > 0)
 		ret = 0;

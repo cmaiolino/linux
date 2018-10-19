@@ -2277,8 +2277,7 @@ static int ext4_fill_fiemap_extents(struct inode *inode,
 		}
 
 		if (exists) {
-			err = fiemap_fill_next_extent(
-				(struct fiemap_extent_info *)f_ctx->fc_data,
+			err = fiemap_fill_next_extent(f_ctx,
 				(__u64)es.es_lblk << blksize_bits,
 				(__u64)es.es_pblk << blksize_bits,
 				(__u64)es.es_len << blksize_bits,
@@ -5041,9 +5040,8 @@ static int ext4_xattr_fiemap(struct inode *inode,
 	}
 
 	if (physical)
-		error = fiemap_fill_next_extent(
-			(struct fiemap_extent_info *)f_ctx->fc_data,
-			0, physical, length, flags);
+		error = fiemap_fill_next_extent(f_ctx, 0, physical,
+						length, flags);
 	return (error < 0 ? error : 0);
 }
 

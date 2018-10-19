@@ -1027,9 +1027,8 @@ int nilfs_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx)
 		if (delalloc_blklen && blkoff == delalloc_blkoff) {
 			if (size) {
 				/* End of the current extent */
-				ret = fiemap_fill_next_extent(
-					(struct fiemap_extent_info *)f_ctx->fc_data,
-					logical, phys, size, flags);
+				ret = fiemap_fill_next_extent(f_ctx, logical,
+							     phys, size, flags);
 				if (ret)
 					break;
 			}
@@ -1078,9 +1077,8 @@ int nilfs_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx)
 				if (past_eof)
 					flags |= FIEMAP_EXTENT_LAST;
 
-				ret = fiemap_fill_next_extent(
-					(struct fiemap_extent_info *)f_ctx->fc_data,
-					logical, phys, size, flags);
+				ret = fiemap_fill_next_extent(f_ctx, logical,
+							     phys, size, flags);
 				if (ret)
 					break;
 				size = 0;
@@ -1094,9 +1092,9 @@ int nilfs_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx)
 					size += n << blkbits;
 				} else {
 					/* Terminate the current extent */
-					ret = fiemap_fill_next_extent(
-						(struct fiemap_extent_info *)f_ctx->fc_data,
-						logical, phys, size, flags);
+					ret = fiemap_fill_next_extent(f_ctx,
+							logical, phys, size,
+							flags);
 					if (ret || blkoff > end_blkoff)
 						break;
 

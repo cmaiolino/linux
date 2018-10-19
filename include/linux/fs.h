@@ -1709,7 +1709,7 @@ struct fiemap_ctx {
 	u64 fc_len;
 };
 
-int fiemap_fill_next_extent(struct fiemap_extent_info *info, u64 logical,
+int fiemap_fill_next_extent(struct fiemap_ctx *f_ctx, u64 logical,
 			    u64 phys, u64 len, u32 flags);
 int fiemap_check_flags(struct fiemap_ctx *f_ctx, u32 fs_flags);
 

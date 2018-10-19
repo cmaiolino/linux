@@ -1888,9 +1888,8 @@ int ext4_inline_data_fiemap(struct inode *inode,
 	physical += offsetof(struct ext4_inode, i_block);
 
 	if (physical)
-		error = fiemap_fill_next_extent(
-			(struct fiemap_extent_info *)f_ctx->fc_data,
-			start, physical, inline_len, flags);
+		error = fiemap_fill_next_extent(f_ctx, start, physical,
+						inline_len, flags);
 	brelse(iloc.bh);
 out:
 	up_read(&EXT4_I(inode)->xattr_sem);
