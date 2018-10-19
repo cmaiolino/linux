@@ -1692,7 +1692,6 @@ extern bool may_open_dev(const struct path *path);
 struct fiemap_ctx;
 
 struct fiemap_extent_info {
-	unsigned int fi_flags;		/* Flags as passed from user */
 	unsigned int fi_extents_mapped;	/* Number of mapped extents */
 	unsigned int fi_extents_max;	/* Size of fiemap_extent array */
 	struct fiemap_extent __user *fi_extents_start; /* Start of
@@ -1703,7 +1702,7 @@ typedef int (*fiemap_fill_cb)(struct fiemap_ctx *f_ctx, u64 logical,
 			      u64 phys, u64 len, u32 flags);
 
 struct fiemap_ctx {
-	unsigned int fc_flags;
+	unsigned int fc_flags;	/* Flags as passed from user */
 	void *fc_data;
 	fiemap_fill_cb fc_cb; /* Unused by now */
 	u64 fc_start;
@@ -1712,7 +1711,7 @@ struct fiemap_ctx {
 
 int fiemap_fill_next_extent(struct fiemap_extent_info *info, u64 logical,
 			    u64 phys, u64 len, u32 flags);
-int fiemap_check_flags(struct fiemap_extent_info *fieinfo, u32 fs_flags);
+int fiemap_check_flags(struct fiemap_ctx *f_ctx, u32 fs_flags);
 
 /*
  * File types

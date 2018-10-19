@@ -762,7 +762,7 @@ int ocfs2_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx)
 	struct buffer_head *di_bh = NULL;
 	struct ocfs2_extent_rec rec;
 
-	ret = fiemap_check_flags(fieinfo, OCFS2_FIEMAP_FLAGS);
+	ret = fiemap_check_flags(f_ctx, OCFS2_FIEMAP_FLAGS);
 	if (ret)
 		return ret;
 

@@ -139,13 +139,13 @@ EXPORT_SYMBOL(fiemap_fill_next_extent);
  *
  * Returns 0 on success, -EBADR on bad flags.
  */
-int fiemap_check_flags(struct fiemap_extent_info *fieinfo, u32 fs_flags)
+int fiemap_check_flags(struct fiemap_ctx *f_ctx, u32 fs_flags)
 {
 	u32 incompat_flags;
 
-	incompat_flags = fieinfo->fi_flags & ~(FIEMAP_FLAGS_COMPAT & fs_flags);
+	incompat_flags = f_ctx->fc_flags & ~(FIEMAP_FLAGS_COMPAT & fs_flags);
 	if (incompat_flags) {
-		fieinfo->fi_flags = incompat_flags;
+		f_ctx->fc_flags = incompat_flags;
 		return -EBADR;
 	}
 	return 0;
@@ -199,25 +199,24 @@ static int ioctl_fiemap(struct file *filp, unsigned long arg)
 	if (error)
 		return error;
 
-	fieinfo.fi_flags = fiemap.fm_flags;
 	fieinfo.fi_extents_max = fiemap.fm_extent_count;
 	fieinfo.fi_extents_start = ufiemap->fm_extents;
+
+	f_ctx.fc_flags = fiemap.fm_flags;
+	f_ctx.fc_data = &fieinfo;
+	f_ctx.fc_start = fiemap.fm_start;
+	f_ctx.fc_len = len;
 
 	if (fiemap.fm_extent_count != 0 &&
 	    !access_ok(VERIFY_WRITE, fieinfo.fi_extents_start,
 		       fieinfo.fi_extents_max * sizeof(struct fiemap_extent)))
 		return -EFAULT;
 
-	if (fieinfo.fi_flags & FIEMAP_FLAG_SYNC)
+	if (f_ctx.fc_flags & FIEMAP_FLAG_SYNC)
 		filemap_write_and_wait(inode->i_mapping);
 
-	f_ctx.fc_flags = fieinfo.fi_flags;
-	f_ctx.fc_data = &fieinfo;
-	f_ctx.fc_start = fiemap.fm_start;
-	f_ctx.fc_len = len;
-
 	error = inode->i_op->fiemap(inode, &f_ctx);
-	fiemap.fm_flags = fieinfo.fi_flags;
+	fiemap.fm_flags = f_ctx.fc_flags;
 	fiemap.fm_mapped_extents = fieinfo.fi_extents_mapped;
 	if (copy_to_user(ufiemap, &fiemap, sizeof(fiemap)))
 		error = -EFAULT;
@@ -298,7 +297,7 @@ int __generic_block_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx,
 	bool past_eof = false, whole_file = false;
 	int ret = 0;
 
-	ret = fiemap_check_flags(fieinfo, FIEMAP_FLAG_SYNC);
+	ret = fiemap_check_flags(f_ctx, FIEMAP_FLAG_SYNC);
 	if (ret)
 		return ret;
 

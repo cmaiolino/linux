@@ -5063,7 +5063,7 @@ int ext4_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx)
 			return error;
 	}
 
-	if (fieinfo->fi_flags & FIEMAP_FLAG_CACHE) {
+	if (f_ctx->fc_flags & FIEMAP_FLAG_CACHE) {
 		error = ext4_ext_precache(inode);
 		if (error)
 			return error;
@@ -5073,10 +5073,10 @@ int ext4_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx)
 	if (!(ext4_test_inode_flag(inode, EXT4_INODE_EXTENTS)))
 		return generic_block_fiemap(inode, f_ctx, ext4_get_block);
 
-	if (fiemap_check_flags(fieinfo, EXT4_FIEMAP_FLAGS))
+	if (fiemap_check_flags(f_ctx, EXT4_FIEMAP_FLAGS))
 		return -EBADR;
 
-	if (fieinfo->fi_flags & FIEMAP_FLAG_XATTR) {
+	if (f_ctx->fc_flags & FIEMAP_FLAG_XATTR) {
 		error = ext4_xattr_fiemap(inode, fieinfo);
 	} else {
 		ext4_lblk_t len_blks;
