@@ -1327,8 +1327,7 @@ static inline loff_t blk_to_logical(struct inode *inode, sector_t blk)
 	return (blk << inode->i_blkbits);
 }
 
-static int f2fs_xattr_fiemap(struct inode *inode,
-				struct fiemap_extent_info *fieinfo)
+static int f2fs_xattr_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx)
 {
 	struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
 	struct page *page;
@@ -1367,7 +1366,10 @@ static int f2fs_xattr_fiemap(struct inode *inode,
 		if (!xnid)
 			flags |= FIEMAP_EXTENT_LAST;
 
-		err = fiemap_fill_next_extent(fieinfo, 0, phys, len, flags);
+		err = fiemap_fill_next_extent(
+				(struct fiemap_extent_info *)f_ctx->fc_data,
+				0, phys, len, flags);
+
 		if (err || err == 1)
 			return err;
 	}
@@ -1392,14 +1394,15 @@ static int f2fs_xattr_fiemap(struct inode *inode,
 	}
 
 	if (phys)
-		err = fiemap_fill_next_extent(fieinfo, 0, phys, len, flags);
+		err = fiemap_fill_next_extent(
+				(struct fiemap_extent_info *)f_ctx->fc_data,
+				0, phys, len, flags);
 
 	return (err < 0 ? err : 0);
 }
 
 int f2fs_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx)
 {
-	struct fiemap_extent_info *fieinfo = f_ctx->fc_data;
 	u64 start = f_ctx->fc_start;
 	u64 len = f_ctx->fc_len;
 	struct buffer_head map_bh;
@@ -1422,12 +1425,12 @@ int f2fs_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx)
 	inode_lock(inode);
 
 	if (f_ctx->fc_flags & FIEMAP_FLAG_XATTR) {
-		ret = f2fs_xattr_fiemap(inode, fieinfo);
+		ret = f2fs_xattr_fiemap(inode, f_ctx);
 		goto out;
 	}
 
 	if (f2fs_has_inline_data(inode)) {
-		ret = f2fs_inline_data_fiemap(inode, fieinfo, start, len);
+		ret = f2fs_inline_data_fiemap(inode, f_ctx);
 		if (ret != -EAGAIN)
 			goto out;
 	}
@@ -1462,8 +1465,9 @@ next:
 		if (f2fs_encrypted_inode(inode))
 			flags |= FIEMAP_EXTENT_DATA_ENCRYPTED;
 
-		ret = fiemap_fill_next_extent(fieinfo, logical,
-				phys, size, flags);
+		ret = fiemap_fill_next_extent(
+				(struct fiemap_extent_info *)f_ctx->fc_data,
+				logical, phys, size, flags);
 	}
 
 	if (start_blk > last_blk || ret)
