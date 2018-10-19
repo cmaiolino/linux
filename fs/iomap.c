@@ -1166,11 +1166,11 @@ int iomap_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx,
 	ctx.fi = fi;
 	ctx.prev.type = IOMAP_HOLE;
 
-	ret = fiemap_check_flags(fi, FIEMAP_FLAG_SYNC);
+	ret = fiemap_check_flags(f_ctx, FIEMAP_FLAG_SYNC);
 	if (ret)
 		return ret;
 
-	if (fi->fi_flags & FIEMAP_FLAG_SYNC) {
+	if (f_ctx->fc_flags & FIEMAP_FLAG_SYNC) {
 		ret = filemap_write_and_wait(inode->i_mapping);
 		if (ret)
 			return ret;

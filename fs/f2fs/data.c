@@ -1409,19 +1409,19 @@ int f2fs_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx)
 	u32 flags = 0;
 	int ret = 0;
 
-	if (fieinfo->fi_flags & FIEMAP_FLAG_CACHE) {
+	if (f_ctx->fc_flags & FIEMAP_FLAG_CACHE) {
 		ret = f2fs_precache_extents(inode);
 		if (ret)
 			return ret;
 	}
 
-	ret = fiemap_check_flags(fieinfo, FIEMAP_FLAG_SYNC | FIEMAP_FLAG_XATTR);
+	ret = fiemap_check_flags(f_ctx, FIEMAP_FLAG_SYNC | FIEMAP_FLAG_XATTR);
 	if (ret)
 		return ret;
 
 	inode_lock(inode);
 
-	if (fieinfo->fi_flags & FIEMAP_FLAG_XATTR) {
+	if (f_ctx->fc_flags & FIEMAP_FLAG_XATTR) {
 		ret = f2fs_xattr_fiemap(inode, fieinfo);
 		goto out;
 	}

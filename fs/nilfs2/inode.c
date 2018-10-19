@@ -1007,7 +1007,7 @@ int nilfs_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx)
 	unsigned int blkbits = inode->i_blkbits;
 	int ret, n;
 
-	ret = fiemap_check_flags(fieinfo, FIEMAP_FLAG_SYNC);
+	ret = fiemap_check_flags(f_ctx, FIEMAP_FLAG_SYNC);
 	if (ret)
 		return ret;
 
