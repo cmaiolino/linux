@@ -705,9 +705,7 @@ int f2fs_inline_data_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx)
 	byteaddr = (__u64)ni.blk_addr << inode->i_sb->s_blocksize_bits;
 	byteaddr += (char *)inline_data_addr(inode, ipage) -
 					(char *)F2FS_INODE(ipage);
-	err = fiemap_fill_next_extent(
-			(struct fiemap_extent_info *)f_ctx->fc_data,
-			start, byteaddr, ilen, flags);
+	err = fiemap_fill_next_extent(f_ctx, start, byteaddr, ilen, flags);
 
 out:
 	f2fs_put_page(ipage, 1);

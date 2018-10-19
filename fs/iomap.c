@@ -1128,8 +1128,7 @@ static int iomap_to_fiemap(struct fiemap_ctx *f_ctx,
 	if (iomap->flags & IOMAP_F_SHARED)
 		flags |= FIEMAP_EXTENT_SHARED;
 
-	return fiemap_fill_next_extent(
-			(struct fiemap_extent_info *)f_ctx->fc_data,
+	return fiemap_fill_next_extent(f_ctx,
 			iomap->offset,
 			iomap->addr != IOMAP_NULL_ADDR ? iomap->addr : 0,
 			iomap->length, flags);

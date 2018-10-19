@@ -737,9 +737,7 @@ static int ocfs2_fiemap_inline(struct inode *inode, struct buffer_head *di_bh,
 			phys += offsetof(struct ocfs2_dinode,
 					 id2.i_data.id_data);
 
-		ret = fiemap_fill_next_extent(
-				(struct fiemap_extent_info *)f_ctx->fc_data,
-				0, phys, id_count, flags);
+		ret = fiemap_fill_next_extent(f_ctx, 0, phys, id_count, flags);
 		if (ret < 0)
 			return ret;
 	}
@@ -812,9 +810,8 @@ int ocfs2_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx)
 		phys_bytes = le64_to_cpu(rec.e_blkno) << osb->sb->s_blocksize_bits;
 		virt_bytes = (u64)le32_to_cpu(rec.e_cpos) << osb->s_clustersize_bits;
 
-		ret = fiemap_fill_next_extent(
-				(struct fiemap_extent_info*)f_ctx->fc_data,
-				virt_bytes, phys_bytes, len_bytes, fe_flags);
+		ret = fiemap_fill_next_extent(f_ctx, virt_bytes, phys_bytes,
+					      len_bytes, fe_flags);
 		if (ret)
 			break;
 

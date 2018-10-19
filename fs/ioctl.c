@@ -86,9 +86,10 @@ static int ioctl_fibmap(struct file *filp, int __user *p)
 #define SET_UNKNOWN_FLAGS	(FIEMAP_EXTENT_DELALLOC)
 #define SET_NO_UNMOUNTED_IO_FLAGS	(FIEMAP_EXTENT_DATA_ENCRYPTED)
 #define SET_NOT_ALIGNED_FLAGS	(FIEMAP_EXTENT_DATA_TAIL|FIEMAP_EXTENT_DATA_INLINE)
-int fiemap_fill_next_extent(struct fiemap_extent_info *fieinfo, u64 logical,
+int fiemap_fill_next_extent(struct fiemap_ctx *f_ctx, u64 logical,
 			    u64 phys, u64 len, u32 flags)
 {
+	struct fiemap_extent_info *fieinfo = f_ctx->fc_data;
 	struct fiemap_extent extent;
 	struct fiemap_extent __user *dest = fieinfo->fi_extents_start;
 
@@ -286,7 +287,6 @@ static inline loff_t blk_to_logical(struct inode *inode, sector_t blk)
 int __generic_block_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx,
 			   get_block_t *get_block)
 {
-	struct fiemap_extent_info *fieinfo = f_ctx->fc_data;
 	loff_t start = f_ctx->fc_start;
 	loff_t len = f_ctx->fc_len;
 	struct buffer_head map_bh;
@@ -354,11 +354,11 @@ int __generic_block_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx,
 			 */
 			if (past_eof && size) {
 				flags = FIEMAP_EXTENT_MERGED|FIEMAP_EXTENT_LAST;
-				ret = fiemap_fill_next_extent(fieinfo, logical,
+				ret = fiemap_fill_next_extent(f_ctx, logical,
 							      phys, size,
 							      flags);
 			} else if (size) {
-				ret = fiemap_fill_next_extent(fieinfo, logical,
+				ret = fiemap_fill_next_extent(f_ctx, logical,
 							      phys, size, flags);
 				size = 0;
 			}
@@ -383,7 +383,7 @@ int __generic_block_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx,
 			 * and break
 			 */
 			if (start_blk > last_blk && !whole_file) {
-				ret = fiemap_fill_next_extent(fieinfo, logical,
+				ret = fiemap_fill_next_extent(f_ctx, logical,
 							      phys, size,
 							      flags);
 				break;
@@ -394,7 +394,7 @@ int __generic_block_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx,
 			 * to add, so add it.
 			 */
 			if (size) {
-				ret = fiemap_fill_next_extent(fieinfo, logical,
+				ret = fiemap_fill_next_extent(f_ctx, logical,
 							      phys, size,
 							      flags);
 				if (ret)
