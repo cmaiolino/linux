@@ -1156,9 +1156,10 @@ iomap_fiemap_actor(struct inode *inode, loff_t pos, loff_t length, void *data,
 	}
 }
 
-int iomap_fiemap(struct inode *inode, struct fiemap_extent_info *fi,
+int iomap_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx,
 		loff_t start, loff_t len, const struct iomap_ops *ops)
 {
+	struct fiemap_extent_info *fi = f_ctx->fc_data;
 	struct fiemap_iomap_ctx ctx;
 	loff_t ret;
 
