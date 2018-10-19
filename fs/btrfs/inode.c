@@ -8614,16 +8614,13 @@ out:
 
 static int btrfs_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx)
 {
-	struct fiemap_extent_info *fieinfo = f_ctx->fc_data;
-	u64 start = f_ctx->fc_start;
-	u64 len	  = f_ctx->fc_len;
 	int	ret;
 
 	ret = fiemap_check_flags(f_ctx, BTRFS_FIEMAP_FLAGS);
 	if (ret)
 		return ret;
 
-	return extent_fiemap(inode, fieinfo, start, len);
+	return extent_fiemap(inode, f_ctx);
 }
 
 int btrfs_readpage(struct file *file, struct page *page)
