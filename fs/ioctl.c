@@ -68,25 +68,10 @@ static int ioctl_fibmap(struct file *filp, int __user *p)
 	return put_user(res, p);
 }
 
-/**
- * fiemap_fill_next_extent - Fiemap helper function
- * @fieinfo:	Fiemap context passed into ->fiemap
- * @logical:	Extent logical start offset, in bytes
- * @phys:	Extent physical start offset, in bytes
- * @len:	Extent length, in bytes
- * @flags:	FIEMAP_EXTENT flags that describe this extent
- *
- * Called from file system ->fiemap callback. Will populate extent
- * info as passed in via arguments and copy to user memory. On
- * success, extent count on fieinfo is incremented.
- *
- * Returns 0 on success, -errno on error, 1 if this was the last
- * extent that will fit in user array.
- */
 #define SET_UNKNOWN_FLAGS	(FIEMAP_EXTENT_DELALLOC)
 #define SET_NO_UNMOUNTED_IO_FLAGS	(FIEMAP_EXTENT_DATA_ENCRYPTED)
 #define SET_NOT_ALIGNED_FLAGS	(FIEMAP_EXTENT_DATA_TAIL|FIEMAP_EXTENT_DATA_INLINE)
-int fiemap_fill_next_extent(struct fiemap_ctx *f_ctx, u64 logical,
+int fiemap_fill_usr_extent(struct fiemap_ctx *f_ctx, u64 logical,
 			    u64 phys, u64 len, u32 flags)
 {
 	struct fiemap_extent_info *fieinfo = f_ctx->fc_data;
@@ -124,8 +109,29 @@ int fiemap_fill_next_extent(struct fiemap_ctx *f_ctx, u64 logical,
 		return 1;
 	return (flags & FIEMAP_EXTENT_LAST) ? 1 : 0;
 }
-EXPORT_SYMBOL(fiemap_fill_next_extent);
 
+/**
+ * fiemap_fill_next_extent - Fiemap helper function
+ * @fieinfo:	Fiemap context passed into ->fiemap
+ * @logical:	Extent logical start offset, in bytes
+ * @phys:	Extent physical start offset, in bytes
+ * @len:	Extent length, in bytes
+ * @flags:	FIEMAP_EXTENT flags that describe this extent
+ *
+ * Called from file system ->fiemap callback. Will populate extent
+ * info as passed in via arguments and copy to user memory. On
+ * success, extent count on fieinfo is incremented.
+ *
+ * Returns 0 on success, -errno on error, 1 if this was the last
+ * extent that will fit in user array.
+ */
+
+int fiemap_fill_next_extent(struct fiemap_ctx *f_ctx, u64 logical,
+			    u64 phys, u64 len, u32 flags)
+{
+	return f_ctx->fc_cb(f_ctx, logical, phys, len, flags);
+}
+EXPORT_SYMBOL(fiemap_fill_next_extent);
 /**
  * fiemap_check_flags - check validity of requested flags for fiemap
  * @fieinfo:	Fiemap context passed into ->fiemap
@@ -207,6 +213,8 @@ static int ioctl_fiemap(struct file *filp, unsigned long arg)
 	f_ctx.fc_data = &fieinfo;
 	f_ctx.fc_start = fiemap.fm_start;
 	f_ctx.fc_len = len;
+
+	f_ctx.fc_cb = fiemap_fill_usr_extent;
 
 	if (fiemap.fm_extent_count != 0 &&
 	    !access_ok(VERIFY_WRITE, fieinfo.fi_extents_start,
