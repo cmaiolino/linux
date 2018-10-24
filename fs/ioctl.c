@@ -53,19 +53,23 @@ EXPORT_SYMBOL(vfs_ioctl);
 
 static int ioctl_fibmap(struct file *filp, int __user *p)
 {
-	struct address_space *mapping = filp->f_mapping;
-	int res, block;
+	struct inode *inode = file_inode(filp);
+	int error, block;
 
-	/* do we support this mess? */
-	if (!mapping->a_ops->bmap)
-		return -EINVAL;
 	if (!capable(CAP_SYS_RAWIO))
 		return -EPERM;
-	res = get_user(block, p);
-	if (res)
-		return res;
-	res = mapping->a_ops->bmap(mapping, block);
-	return put_user(res, p);
+
+	error = get_user(block, p);
+	if (error)
+		return error;
+
+	error = bmap(inode, (sector_t *)&block);
+	if (error)
+		return error;
+
+	error = put_user(block, p);
+
+	return error;
 }
 
 #define SET_UNKNOWN_FLAGS	(FIEMAP_EXTENT_DELALLOC)
