@@ -114,6 +114,40 @@ int fiemap_fill_usr_extent(struct fiemap_ctx *f_ctx, u64 logical,
 	return (flags & FIEMAP_EXTENT_LAST) ? 1 : 0;
 }
 
+int fiemap_fill_kextent(struct fiemap_ctx *f_ctx, u64 logical,
+			u64 phys, u64 len, u32 flags)
+{
+	struct fiemap_kextent_info *kinfo = f_ctx->fc_data;
+	struct fiemap_extent extent;
+	struct fiemap_extent *dest = kinfo->fi_extents_start;
+
+	/* only count the extents */
+	if (kinfo->fi_extents_max == 0) {
+		kinfo->fi_extents_mapped++;
+		return (flags & FIEMAP_EXTENT_LAST) ? 1 : 0;
+	}
+
+	if (kinfo->fi_extents_mapped >= kinfo->fi_extents_max)
+		return 1;
+
+	if (flags & SET_UNKNOWN_FLAGS)
+		flags |= FIEMAP_EXTENT_UNKNOWN;
+	if (flags & SET_NO_UNMOUNTED_IO_FLAGS)
+		flags |= FIEMAP_EXTENT_ENCODED;
+	if (flags & SET_NOT_ALIGNED_FLAGS)
+		flags |= FIEMAP_EXTENT_NOT_ALIGNED;
+
+	memset(&extent, 0, sizeof(extent));
+	extent.fe_logical = logical;
+	extent.fe_physical = phys;
+	extent.fe_length = len;
+	extent.fe_flags = flags;
+
+	dest += kinfo->fi_extents_mapped;
+	memcpy(dest, &extent, sizeof(extent));
+	return 0;
+}
+
 /**
  * fiemap_fill_next_extent - Fiemap helper function
  * @fieinfo:	Fiemap context passed into ->fiemap
@@ -155,6 +189,7 @@ int fiemap_check_flags(struct fiemap_ctx *f_ctx, u32 fs_flags)
 	u32 incompat_flags;
 
 	incompat_flags = f_ctx->fc_flags & ~(FIEMAP_FLAGS_COMPAT & fs_flags);
+	incompat_flags &= ~(FIEMAP_FLAG_FIBMAP);
 	if (incompat_flags) {
 		f_ctx->fc_flags = incompat_flags;
 		return -EBADR;

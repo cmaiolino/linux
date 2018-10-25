@@ -1698,6 +1698,12 @@ struct fiemap_extent_info {
 							fiemap_extent array */
 };
 
+struct fiemap_kextent_info {
+	unsigned int fi_extents_mapped;
+	unsigned int fi_extents_max;
+	struct fiemap_extent *fi_extents_start;
+};
+
 typedef int (*fiemap_fill_cb)(struct fiemap_ctx *f_ctx, u64 logical,
 			      u64 phys, u64 len, u32 flags);
 
@@ -1712,6 +1718,9 @@ struct fiemap_ctx {
 int fiemap_fill_next_extent(struct fiemap_ctx *f_ctx, u64 logical,
 			    u64 phys, u64 len, u32 flags);
 int fiemap_check_flags(struct fiemap_ctx *f_ctx, u32 fs_flags);
+
+int fiemap_fill_kextent(struct fiemap_ctx *f_ctx, u64 logical,
+			u64 phys, u64 len, u32 flags);
 
 /*
  * File types
