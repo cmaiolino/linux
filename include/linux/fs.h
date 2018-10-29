@@ -1691,18 +1691,13 @@ extern bool may_open_dev(const struct path *path);
 
 struct fiemap_ctx;
 
-struct fiemap_extent_info {
-	unsigned int fi_extents_mapped;	/* Number of mapped extents */
-	unsigned int fi_extents_max;	/* Size of fiemap_extent array */
-	struct fiemap_extent __user *fi_extents_start; /* Start of
-							fiemap_extent array */
-};
-
 typedef int (*fiemap_fill_cb)(struct fiemap_ctx *f_ctx, u64 logical,
 			      u64 phys, u64 len, u32 flags);
 
 struct fiemap_ctx {
 	unsigned int fc_flags;	/* Flags as passed from user */
+	unsigned int fc_extents_mapped;	/* Number of mapped extents */
+	unsigned int fc_extents_max;	/* Size of fiemap_extent array */
 	void *fc_data;
 	fiemap_fill_cb fc_cb;
 	u64 fc_start;

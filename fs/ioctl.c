@@ -78,17 +78,16 @@ static int ioctl_fibmap(struct file *filp, int __user *p)
 int fiemap_fill_usr_extent(struct fiemap_ctx *f_ctx, u64 logical,
 			    u64 phys, u64 len, u32 flags)
 {
-	struct fiemap_extent_info *fieinfo = f_ctx->fc_data;
 	struct fiemap_extent extent;
-	struct fiemap_extent __user *dest = fieinfo->fi_extents_start;
+	struct fiemap_extent __user *dest = f_ctx->fc_data;
 
 	/* only count the extents */
-	if (fieinfo->fi_extents_max == 0) {
-		fieinfo->fi_extents_mapped++;
+	if (f_ctx->fc_extents_max == 0) {
+		f_ctx->fc_extents_mapped++;
 		return (flags & FIEMAP_EXTENT_LAST) ? 1 : 0;
 	}
 
-	if (fieinfo->fi_extents_mapped >= fieinfo->fi_extents_max)
+	if (f_ctx->fc_extents_mapped >= f_ctx->fc_extents_max)
 		return 1;
 
 	if (flags & SET_UNKNOWN_FLAGS)
@@ -104,12 +103,12 @@ int fiemap_fill_usr_extent(struct fiemap_ctx *f_ctx, u64 logical,
 	extent.fe_length = len;
 	extent.fe_flags = flags;
 
-	dest += fieinfo->fi_extents_mapped;
+	dest += f_ctx->fc_extents_mapped;
 	if (copy_to_user(dest, &extent, sizeof(extent)))
 		return -EFAULT;
 
-	fieinfo->fi_extents_mapped++;
-	if (fieinfo->fi_extents_mapped == fieinfo->fi_extents_max)
+	f_ctx->fc_extents_mapped++;
+	if (f_ctx->fc_extents_mapped == f_ctx->fc_extents_max)
 		return 1;
 	return (flags & FIEMAP_EXTENT_LAST) ? 1 : 0;
 }
@@ -189,7 +188,6 @@ static int ioctl_fiemap(struct file *filp, unsigned long arg)
 {
 	struct fiemap fiemap;
 	struct fiemap __user *ufiemap = (struct fiemap __user *) arg;
-	struct fiemap_extent_info fieinfo = { 0, };
 	struct inode *inode = file_inode(filp);
 	struct super_block *sb = inode->i_sb;
 	struct fiemap_ctx f_ctx;
@@ -210,19 +208,18 @@ static int ioctl_fiemap(struct file *filp, unsigned long arg)
 	if (error)
 		return error;
 
-	fieinfo.fi_extents_max = fiemap.fm_extent_count;
-	fieinfo.fi_extents_start = ufiemap->fm_extents;
-
+	f_ctx.fc_extents_max = fiemap.fm_extent_count;
+	f_ctx.fc_data = ufiemap->fm_extents;
+	f_ctx.fc_extents_mapped = 0;
 	f_ctx.fc_flags = fiemap.fm_flags;
-	f_ctx.fc_data = &fieinfo;
 	f_ctx.fc_start = fiemap.fm_start;
 	f_ctx.fc_len = len;
 
 	f_ctx.fc_cb = fiemap_fill_usr_extent;
 
 	if (fiemap.fm_extent_count != 0 &&
-	    !access_ok(VERIFY_WRITE, fieinfo.fi_extents_start,
-		       fieinfo.fi_extents_max * sizeof(struct fiemap_extent)))
+	    !access_ok(VERIFY_WRITE, f_ctx.fc_data,
+		       f_ctx.fc_extents_max * sizeof(struct fiemap_extent)))
 		return -EFAULT;
 
 	if (f_ctx.fc_flags & FIEMAP_FLAG_SYNC)
@@ -230,7 +227,7 @@ static int ioctl_fiemap(struct file *filp, unsigned long arg)
 
 	error = inode->i_op->fiemap(inode, &f_ctx);
 	fiemap.fm_flags = f_ctx.fc_flags;
-	fiemap.fm_mapped_extents = fieinfo.fi_extents_mapped;
+	fiemap.fm_mapped_extents = f_ctx.fc_extents_mapped;
 	if (copy_to_user(ufiemap, &fiemap, sizeof(fiemap)))
 		error = -EFAULT;
 

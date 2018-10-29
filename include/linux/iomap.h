@@ -9,7 +9,6 @@
 #include <linux/mm_types.h>
 
 struct address_space;
-struct fiemap_extent_info;
 struct inode;
 struct iov_iter;
 struct kiocb;

@@ -4436,7 +4436,6 @@ int extent_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx)
 	struct btrfs_path *path;
 	struct btrfs_root *root = BTRFS_I(inode)->root;
 	struct fiemap_cache cache = { 0 };
-	struct fiemap_extent_info *fieinfo = f_ctx->fc_data;
 	int end = 0;
 	u64 em_start = 0;
 	u64 em_len = 0;
@@ -4561,7 +4560,7 @@ int extent_fiemap(struct inode *inode, struct fiemap_ctx *f_ctx)
 		} else if (em->block_start == EXTENT_MAP_DELALLOC) {
 			flags |= (FIEMAP_EXTENT_DELALLOC |
 				  FIEMAP_EXTENT_UNKNOWN);
-		} else if (fieinfo->fi_extents_max) {
+		} else if (f_ctx->fc_extents_max) {
 			u64 bytenr = em->block_start -
 				(em->start - em->orig_start);
 
