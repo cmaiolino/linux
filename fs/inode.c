@@ -1591,11 +1591,36 @@ EXPORT_SYMBOL(iput);
  */
 int bmap(struct inode *inode, sector_t *block)
 {
-	if (!inode->i_mapping->a_ops->bmap)
-		return -EINVAL;
+	struct fiemap_ctx f_ctx;
+	struct fiemap_extent fextent;
+	u64 start = *block << inode->i_blkbits;
+	int error = -EINVAL;
 
-	*block = inode->i_mapping->a_ops->bmap(inode->i_mapping, *block);
-	return 0;
+	if (inode->i_op->fiemap) {
+		fextent.fe_logical = 0;
+		fextent.fe_physical = 0;
+		f_ctx.fc_extents_max = 1;
+		f_ctx.fc_extents_mapped = 0;
+		f_ctx.fc_data = &fextent;
+		f_ctx.fc_start = start;
+		f_ctx.fc_len = 1;
+		f_ctx.fc_flags = 0;
+		f_ctx.fc_cb = fiemap_fill_kernel_extent;
+
+		error = inode->i_op->fiemap(inode, &f_ctx);
+
+		if (error)
+			goto out;
+
+		*block = (fextent.fe_physical +
+			(start - fextent.fe_logical)) >> inode->i_blkbits;
+
+	} else if (inode->i_mapping->a_ops->bmap) {
+		*block = inode->i_mapping->a_ops->bmap(inode->i_mapping, *block);
+		error = 0;
+	}
+out:
+	return error;
 }
 EXPORT_SYMBOL(bmap);
 

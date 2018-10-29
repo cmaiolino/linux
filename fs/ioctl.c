@@ -113,6 +113,37 @@ int fiemap_fill_usr_extent(struct fiemap_ctx *f_ctx, u64 logical,
 	return (flags & FIEMAP_EXTENT_LAST) ? 1 : 0;
 }
 
+int fiemap_fill_kernel_extent(struct fiemap_ctx *f_ctx, u64 logical,
+			      u64 phys, u64 len, u32 flags)
+{
+	struct fiemap_extent *extent = f_ctx->fc_data;
+
+	if (f_ctx->fc_extents_max == 0) {
+		f_ctx->fc_extents_mapped++;
+		return (flags & FIEMAP_EXTENT_LAST) ? 1 : 0;
+	}
+
+	if (f_ctx->fc_extents_mapped >= f_ctx->fc_extents_max)
+		return 1;
+
+	if (flags & SET_UNKNOWN_FLAGS)
+		flags |= FIEMAP_EXTENT_UNKNOWN;
+	if (flags & SET_NO_UNMOUNTED_IO_FLAGS)
+		flags |= FIEMAP_EXTENT_ENCODED;
+	if (flags & SET_NOT_ALIGNED_FLAGS)
+		flags |= FIEMAP_EXTENT_NOT_ALIGNED;
+
+	extent->fe_logical = logical;
+	extent->fe_physical = phys;
+	extent->fe_length = len;
+	extent->fe_flags = flags;
+
+	f_ctx->fc_extents_mapped++;
+
+	if (f_ctx->fc_extents_mapped == f_ctx->fc_extents_max)
+		return 1;
+	return (flags & FIEMAP_EXTENT_LAST) ? 1 : 0;
+}
 /**
  * fiemap_fill_next_extent - Fiemap helper function
  * @fieinfo:	Fiemap context passed into ->fiemap

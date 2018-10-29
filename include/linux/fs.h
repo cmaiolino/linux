@@ -1704,6 +1704,8 @@ struct fiemap_ctx {
 	u64 fc_len;
 };
 
+int fiemap_fill_kernel_extent(struct fiemap_ctx *f_ctx, u64 logical,
+			      u64 phys, u64 len, u32 flags);
 int fiemap_fill_next_extent(struct fiemap_ctx *f_ctx, u64 logical,
 			    u64 phys, u64 len, u32 flags);
 int fiemap_check_flags(struct fiemap_ctx *f_ctx, u32 fs_flags);
