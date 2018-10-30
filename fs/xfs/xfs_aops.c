@@ -1138,29 +1138,6 @@ xfs_vm_releasepage(
 	return iomap_releasepage(page, gfp_mask);
 }
 
-STATIC sector_t
-xfs_vm_bmap(
-	struct address_space	*mapping,
-	sector_t		block)
-{
-	struct xfs_inode	*ip = XFS_I(mapping->host);
-
-	trace_xfs_vm_bmap(ip);
-
-	/*
-	 * The swap code (ab-)uses ->bmap to get a block mapping and then
-	 * bypasses the file system for actual I/O.  We really can't allow
-	 * that on reflinks inodes, so we have to skip out here.  And yes,
-	 * 0 is the magic code for a bmap error.
-	 *
-	 * Since we don't pass back blockdev info, we can't return bmap
-	 * information for rt files either.
-	 */
-	if (xfs_is_cow_inode(ip) || XFS_IS_REALTIME_INODE(ip))
-		return 0;
-	return iomap_bmap(mapping, block, &xfs_iomap_ops);
-}
-
 STATIC int
 xfs_vm_readpage(
 	struct file		*unused,
@@ -1199,7 +1176,6 @@ const struct address_space_operations xfs_address_space_operations = {
 	.set_page_dirty		= iomap_set_page_dirty,
 	.releasepage		= xfs_vm_releasepage,
 	.invalidatepage		= xfs_vm_invalidatepage,
-	.bmap			= xfs_vm_bmap,
 	.direct_IO		= noop_direct_IO,
 	.migratepage		= iomap_migrate_page,
 	.is_partially_uptodate  = iomap_is_partially_uptodate,
