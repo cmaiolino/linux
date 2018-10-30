@@ -3275,75 +3275,6 @@ int ext4_alloc_da_blocks(struct inode *inode)
 	return filemap_flush(inode->i_mapping);
 }
 
-/*
- * bmap() is special.  It gets used by applications such as lilo and by
- * the swapper to find the on-disk block of a specific piece of data.
- *
- * Naturally, this is dangerous if the block concerned is still in the
- * journal.  If somebody makes a swapfile on an ext4 data-journaling
- * filesystem and enables swap, then they may get a nasty shock when the
- * data getting swapped to that swapfile suddenly gets overwritten by
- * the original zero's written out previously to the journal and
- * awaiting writeback in the kernel's buffer cache.
- *
- * So, if we see any bmap calls here on a modified, data-journaled file,
- * take extra steps to flush any blocks which might be in the cache.
- */
-static sector_t ext4_bmap(struct address_space *mapping, sector_t block)
-{
-	struct inode *inode = mapping->host;
-	journal_t *journal;
-	int err;
-
-	/*
-	 * We can get here for an inline file via the FIBMAP ioctl
-	 */
-	if (ext4_has_inline_data(inode))
-		return 0;
-
-	if (mapping_tagged(mapping, PAGECACHE_TAG_DIRTY) &&
-			test_opt(inode->i_sb, DELALLOC)) {
-		/*
-		 * With delalloc we want to sync the file
-		 * so that we can make sure we allocate
-		 * blocks for file
-		 */
-		filemap_write_and_wait(mapping);
-	}
-
-	if (EXT4_JOURNAL(inode) &&
-	    ext4_test_inode_state(inode, EXT4_STATE_JDATA)) {
-		/*
-		 * This is a REALLY heavyweight approach, but the use of
-		 * bmap on dirty files is expected to be extremely rare:
-		 * only if we run lilo or swapon on a freshly made file
-		 * do we expect this to happen.
-		 *
-		 * (bmap requires CAP_SYS_RAWIO so this does not
-		 * represent an unprivileged user DOS attack --- we'd be
-		 * in trouble if mortal users could trigger this path at
-		 * will.)
-		 *
-		 * NB. EXT4_STATE_JDATA is not set on files other than
-		 * regular files.  If somebody wants to bmap a directory
-		 * or symlink and gets confused because the buffer
-		 * hasn't yet been flushed to disk, they deserve
-		 * everything they get.
-		 */
-
-		ext4_clear_inode_state(inode, EXT4_STATE_JDATA);
-		journal = EXT4_JOURNAL(inode);
-		jbd2_journal_lock_updates(journal);
-		err = jbd2_journal_flush(journal);
-		jbd2_journal_unlock_updates(journal);
-
-		if (err)
-			return 0;
-	}
-
-	return generic_block_bmap(mapping, block, ext4_get_block);
-}
-
 static int ext4_readpage(struct file *file, struct page *page)
 {
 	int ret = -EAGAIN;
@@ -3937,7 +3868,6 @@ static const struct address_space_operations ext4_aops = {
 	.write_begin		= ext4_write_begin,
 	.write_end		= ext4_write_end,
 	.set_page_dirty		= ext4_set_page_dirty,
-	.bmap			= ext4_bmap,
 	.invalidatepage		= ext4_invalidatepage,
 	.releasepage		= ext4_releasepage,
 	.direct_IO		= ext4_direct_IO,
@@ -3954,7 +3884,6 @@ static const struct address_space_operations ext4_journalled_aops = {
 	.write_begin		= ext4_write_begin,
 	.write_end		= ext4_journalled_write_end,
 	.set_page_dirty		= ext4_journalled_set_page_dirty,
-	.bmap			= ext4_bmap,
 	.invalidatepage		= ext4_journalled_invalidatepage,
 	.releasepage		= ext4_releasepage,
 	.direct_IO		= ext4_direct_IO,
@@ -3970,7 +3899,6 @@ static const struct address_space_operations ext4_da_aops = {
 	.write_begin		= ext4_da_write_begin,
 	.write_end		= ext4_da_write_end,
 	.set_page_dirty		= ext4_set_page_dirty,
-	.bmap			= ext4_bmap,
 	.invalidatepage		= ext4_da_invalidatepage,
 	.releasepage		= ext4_releasepage,
 	.direct_IO		= ext4_direct_IO,
@@ -3983,7 +3911,6 @@ static const struct address_space_operations ext4_dax_aops = {
 	.writepages		= ext4_dax_writepages,
 	.direct_IO		= noop_direct_IO,
 	.set_page_dirty		= noop_set_page_dirty,
-	.bmap			= ext4_bmap,
 	.invalidatepage		= noop_invalidatepage,
 };
 
