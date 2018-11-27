@@ -794,12 +794,12 @@ static int ext4_ioctl_get_es_cache(struct file *filp, unsigned long arg)
 
 	fieinfo.fi_flags = fiemap.fm_flags;
 	fieinfo.fi_extents_max = fiemap.fm_extent_count;
-	fieinfo.fi_extents_start = ufiemap->fm_extents;
+	fieinfo.fi_cb_data = ufiemap->fm_extents;
 	fieinfo.fi_start = fiemap.fm_start;
 	fieinfo.fi_len = len;
 
 	if (fiemap.fm_extent_count != 0 &&
-	    !access_ok(fieinfo.fi_extents_start,
+	    !access_ok(fieinfo.fi_cb_data,
 		       fieinfo.fi_extents_max * sizeof(struct fiemap_extent)))
 		return -EFAULT;
 
