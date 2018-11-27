@@ -1694,11 +1694,14 @@ extern bool may_open_dev(const struct path *path);
  * VFS FS_IOC_FIEMAP helper definitions.
  */
 struct fiemap_extent_info {
-	unsigned int fi_flags;		/* Flags as passed from user */
-	unsigned int fi_extents_mapped;	/* Number of mapped extents */
-	unsigned int fi_extents_max;	/* Size of fiemap_extent array */
-	struct fiemap_extent __user *fi_extents_start; /* Start of
-							fiemap_extent array */
+	unsigned int	fi_flags;		/* Flags as passed from user */
+	u64		fi_start;
+	u64		fi_len;
+	unsigned int	fi_extents_mapped;	/* Number of mapped extents */
+	unsigned int	fi_extents_max;		/* Size of fiemap_extent array */
+	struct		fiemap_extent __user *fi_extents_start;	/* Start of
+								   fiemap_extent
+								   array */
 };
 int fiemap_fill_next_extent(struct fiemap_extent_info *info, u64 logical,
 			    u64 phys, u64 len, u32 flags);
@@ -1829,8 +1832,7 @@ struct inode_operations {
 	int (*setattr) (struct dentry *, struct iattr *);
 	int (*getattr) (const struct path *, struct kstat *, u32, unsigned int);
 	ssize_t (*listxattr) (struct dentry *, char *, size_t);
-	int (*fiemap)(struct inode *, struct fiemap_extent_info *, u64 start,
-		      u64 len);
+	int (*fiemap)(struct inode *, struct fiemap_extent_info *);
 	int (*update_time)(struct inode *, struct timespec64 *, int);
 	int (*atomic_open)(struct inode *, struct dentry *,
 			   struct file *, unsigned open_flag,
@@ -3186,11 +3188,10 @@ extern int vfs_readlink(struct dentry *, char __user *, int);
 
 extern int __generic_block_fiemap(struct inode *inode,
 				  struct fiemap_extent_info *fieinfo,
-				  loff_t start, loff_t len,
 				  get_block_t *get_block);
 extern int generic_block_fiemap(struct inode *inode,
-				struct fiemap_extent_info *fieinfo, u64 start,
-				u64 len, get_block_t *get_block);
+				struct fiemap_extent_info *fieinfo,
+				get_block_t *get_block);
 
 extern struct file_system_type *get_filesystem(struct file_system_type *fs);
 extern void put_filesystem(struct file_system_type *fs);

@@ -208,6 +208,8 @@ static int ioctl_fiemap(struct file *filp, unsigned long arg)
 	fieinfo.fi_flags = fiemap.fm_flags;
 	fieinfo.fi_extents_max = fiemap.fm_extent_count;
 	fieinfo.fi_extents_start = ufiemap->fm_extents;
+	fieinfo.fi_start = fiemap.fm_start;
+	fieinfo.fi_len = len;
 
 	if (fiemap.fm_extent_count != 0 &&
 	    !access_ok(fieinfo.fi_extents_start,
@@ -217,7 +219,7 @@ static int ioctl_fiemap(struct file *filp, unsigned long arg)
 	if (fieinfo.fi_flags & FIEMAP_FLAG_SYNC)
 		filemap_write_and_wait(inode->i_mapping);
 
-	error = inode->i_op->fiemap(inode, &fieinfo, fiemap.fm_start, len);
+	error = inode->i_op->fiemap(inode, &fieinfo);
 	fiemap.fm_flags = fieinfo.fi_flags;
 	fiemap.fm_mapped_extents = fieinfo.fi_extents_mapped;
 	if (copy_to_user(ufiemap, &fiemap, sizeof(fiemap)))
@@ -294,9 +296,11 @@ static inline loff_t blk_to_logical(struct inode *inode, sector_t blk)
  */
 
 int __generic_block_fiemap(struct inode *inode,
-			   struct fiemap_extent_info *fieinfo, loff_t start,
-			   loff_t len, get_block_t *get_block)
+			   struct fiemap_extent_info *fieinfo,
+			   get_block_t *get_block)
 {
+	loff_t start = fieinfo->fi_start;
+	loff_t len = fieinfo->fi_len;
 	struct buffer_head map_bh;
 	sector_t start_blk, last_blk;
 	loff_t isize = i_size_read(inode);
@@ -453,12 +457,12 @@ EXPORT_SYMBOL(__generic_block_fiemap);
  */
 
 int generic_block_fiemap(struct inode *inode,
-			 struct fiemap_extent_info *fieinfo, u64 start,
-			 u64 len, get_block_t *get_block)
+			 struct fiemap_extent_info *fieinfo,
+			 get_block_t *get_block)
 {
 	int ret;
 	inode_lock(inode);
-	ret = __generic_block_fiemap(inode, fieinfo, start, len, get_block);
+	ret = __generic_block_fiemap(inode, fieinfo, get_block);
 	inode_unlock(inode);
 	return ret;
 }
