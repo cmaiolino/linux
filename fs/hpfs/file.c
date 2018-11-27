@@ -190,9 +190,9 @@ static sector_t _hpfs_bmap(struct address_space *mapping, sector_t block)
 	return generic_block_bmap(mapping, block, hpfs_get_block);
 }
 
-static int hpfs_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo, u64 start, u64 len)
+static int hpfs_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo)
 {
-	return generic_block_fiemap(inode, fieinfo, start, len, hpfs_get_block);
+	return generic_block_fiemap(inode, fieinfo, hpfs_get_block);
 }
 
 const struct address_space_operations hpfs_aops = {

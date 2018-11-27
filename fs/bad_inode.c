@@ -120,8 +120,7 @@ static struct posix_acl *bad_inode_get_acl(struct inode *inode, int type)
 }
 
 static int bad_inode_fiemap(struct inode *inode,
-			    struct fiemap_extent_info *fieinfo, u64 start,
-			    u64 len)
+			    struct fiemap_extent_info *fieinfo)
 {
 	return -EIO;
 }

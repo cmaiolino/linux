@@ -5101,11 +5101,12 @@ static int ext4_xattr_fiemap(struct inode *inode,
 
 static int _ext4_fiemap(struct inode *inode,
 			struct fiemap_extent_info *fieinfo,
-			__u64 start, __u64 len,
 			int (*fill)(struct inode *, ext4_lblk_t,
 				    ext4_lblk_t,
 				    struct fiemap_extent_info *))
 {
+	u64 start = fieinfo->fi_start;
+	u64 len = fieinfo->fi_len;
 	ext4_lblk_t start_blk;
 	u32 ext4_fiemap_flags = FIEMAP_FLAG_SYNC|FIEMAP_FLAG_XATTR;
 
@@ -5131,8 +5132,7 @@ static int _ext4_fiemap(struct inode *inode,
 	/* fallback to generic here if not in extents fmt */
 	if (!(ext4_test_inode_flag(inode, EXT4_INODE_EXTENTS)) &&
 	    fill == ext4_fill_fiemap_extents)
-		return generic_block_fiemap(inode, fieinfo, start, len,
-			ext4_get_block);
+		return generic_block_fiemap(inode, fieinfo, ext4_get_block);
 
 	if (fill == ext4_fill_es_cache_info)
 		ext4_fiemap_flags &= FIEMAP_FLAG_XATTR;
@@ -5160,15 +5160,12 @@ static int _ext4_fiemap(struct inode *inode,
 	return error;
 }
 
-int ext4_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
-		__u64 start, __u64 len)
+int ext4_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo)
 {
-	return _ext4_fiemap(inode, fieinfo, start, len,
-			    ext4_fill_fiemap_extents);
+	return _ext4_fiemap(inode, fieinfo, ext4_fill_fiemap_extents);
 }
 
-int ext4_get_es_cache(struct inode *inode, struct fiemap_extent_info *fieinfo,
-		      __u64 start, __u64 len)
+int ext4_get_es_cache(struct inode *inode, struct fiemap_extent_info *fieinfo)
 {
 	if (ext4_has_inline_data(inode)) {
 		int has_inline;
@@ -5180,8 +5177,7 @@ int ext4_get_es_cache(struct inode *inode, struct fiemap_extent_info *fieinfo,
 			return 0;
 	}
 
-	return _ext4_fiemap(inode, fieinfo, start, len,
-			    ext4_fill_es_cache_info);
+	return _ext4_fiemap(inode, fieinfo, ext4_fill_es_cache_info);
 }
 
 

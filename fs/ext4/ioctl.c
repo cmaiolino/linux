@@ -795,6 +795,8 @@ static int ext4_ioctl_get_es_cache(struct file *filp, unsigned long arg)
 	fieinfo.fi_flags = fiemap.fm_flags;
 	fieinfo.fi_extents_max = fiemap.fm_extent_count;
 	fieinfo.fi_extents_start = ufiemap->fm_extents;
+	fieinfo.fi_start = fiemap.fm_start;
+	fieinfo.fi_len = len;
 
 	if (fiemap.fm_extent_count != 0 &&
 	    !access_ok(fieinfo.fi_extents_start,
@@ -804,7 +806,7 @@ static int ext4_ioctl_get_es_cache(struct file *filp, unsigned long arg)
 	if (fieinfo.fi_flags & FIEMAP_FLAG_SYNC)
 		filemap_write_and_wait(inode->i_mapping);
 
-	error = ext4_get_es_cache(inode, &fieinfo, fiemap.fm_start, len);
+	error = ext4_get_es_cache(inode, &fieinfo);
 	fiemap.fm_flags = fieinfo.fi_flags;
 	fiemap.fm_mapped_extents = fieinfo.fi_extents_mapped;
 	if (copy_to_user(ufiemap, &fiemap, sizeof(fiemap)))

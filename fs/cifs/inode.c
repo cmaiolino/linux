@@ -2123,14 +2123,15 @@ int cifs_getattr(const struct path *path, struct kstat *stat,
 	return rc;
 }
 
-int cifs_fiemap(struct inode *inode, struct fiemap_extent_info *fei, u64 start,
-		u64 len)
+int cifs_fiemap(struct inode *inode, struct fiemap_extent_info *fei)
 {
 	struct cifsInodeInfo *cifs_i = CIFS_I(inode);
 	struct cifs_sb_info *cifs_sb = CIFS_SB(cifs_i->vfs_inode.i_sb);
 	struct cifs_tcon *tcon = cifs_sb_master_tcon(cifs_sb);
 	struct TCP_Server_Info *server = tcon->ses->server;
 	struct cifsFileInfo *cfile;
+	u64 start = fei->fi_start;
+	u64 len = fei->fi_len;
 	int rc;
 
 	/*
