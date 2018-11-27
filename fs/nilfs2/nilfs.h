@@ -276,8 +276,7 @@ extern int nilfs_inode_dirty(struct inode *);
 int nilfs_set_file_dirty(struct inode *inode, unsigned int nr_dirty);
 extern int __nilfs_mark_inode_dirty(struct inode *, int);
 extern void nilfs_dirty_inode(struct inode *, int flags);
-int nilfs_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
-		 __u64 start, __u64 len);
+int nilfs_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo);
 static inline int nilfs_mark_inode_dirty(struct inode *inode)
 {
 	return __nilfs_mark_inode_dirty(inode, I_DIRTY);

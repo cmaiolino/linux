@@ -855,11 +855,9 @@ const struct iomap_ops ext2_iomap_ops = {
 const struct iomap_ops ext2_iomap_ops;
 #endif /* CONFIG_FS_DAX */
 
-int ext2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
-		u64 start, u64 len)
+int ext2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo)
 {
-	return generic_block_fiemap(inode, fieinfo, start, len,
-				    ext2_get_block);
+	return generic_block_fiemap(inode, fieinfo, ext2_get_block);
 }
 
 static int ext2_writepage(struct page *page, struct writeback_control *wbc)

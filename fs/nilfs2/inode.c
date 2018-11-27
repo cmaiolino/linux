@@ -992,9 +992,10 @@ void nilfs_dirty_inode(struct inode *inode, int flags)
 	nilfs_transaction_commit(inode->i_sb); /* never fails */
 }
 
-int nilfs_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
-		 __u64 start, __u64 len)
+int nilfs_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo)
 {
+	u64 start = fieinfo->fi_start;
+	u64 len = fieinfo->fi_len;
 	struct the_nilfs *nilfs = inode->i_sb->s_fs_info;
 	__u64 logical = 0, phys = 0, size = 0;
 	__u32 flags = 0;
