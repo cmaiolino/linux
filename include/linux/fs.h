@@ -64,6 +64,7 @@ struct fscrypt_info;
 struct fscrypt_operations;
 struct fs_context;
 struct fs_parameter_description;
+struct fiemap_extent_info;
 
 extern void __init inode_init(void);
 extern void __init inode_init_early(void);
@@ -1693,16 +1694,21 @@ extern bool may_open_dev(const struct path *path);
 /*
  * VFS FS_IOC_FIEMAP helper definitions.
  */
+
+typedef int (*fiemap_fill_cb)(struct fiemap_extent_info *fieinfo, u64 logical,
+			      u64 phys, u64 len, u32 flags);
+
 struct fiemap_extent_info {
 	unsigned int	fi_flags;		/* Flags as passed from user */
 	u64		fi_start;
 	u64		fi_len;
 	unsigned int	fi_extents_mapped;	/* Number of mapped extents */
 	unsigned int	fi_extents_max;		/* Size of fiemap_extent array */
-	struct		fiemap_extent __user *fi_extents_start;	/* Start of
-								   fiemap_extent
-								   array */
+	void		*fi_cb_data;		/* Start of fiemap_extent
+						   array */
+	fiemap_fill_cb	fi_cb;
 };
+
 int fiemap_fill_next_extent(struct fiemap_extent_info *info, u64 logical,
 			    u64 phys, u64 len, u32 flags);
 int fiemap_check_flags(struct fiemap_extent_info *fieinfo, u32 fs_flags);

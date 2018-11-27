@@ -75,29 +75,14 @@ static int ioctl_fibmap(struct file *filp, int __user *p)
 	return error;
 }
 
-/**
- * fiemap_fill_next_extent - Fiemap helper function
- * @fieinfo:	Fiemap context passed into ->fiemap
- * @logical:	Extent logical start offset, in bytes
- * @phys:	Extent physical start offset, in bytes
- * @len:	Extent length, in bytes
- * @flags:	FIEMAP_EXTENT flags that describe this extent
- *
- * Called from file system ->fiemap callback. Will populate extent
- * info as passed in via arguments and copy to user memory. On
- * success, extent count on fieinfo is incremented.
- *
- * Returns 0 on success, -errno on error, 1 if this was the last
- * extent that will fit in user array.
- */
 #define SET_UNKNOWN_FLAGS	(FIEMAP_EXTENT_DELALLOC)
 #define SET_NO_UNMOUNTED_IO_FLAGS	(FIEMAP_EXTENT_DATA_ENCRYPTED)
 #define SET_NOT_ALIGNED_FLAGS	(FIEMAP_EXTENT_DATA_TAIL|FIEMAP_EXTENT_DATA_INLINE)
-int fiemap_fill_next_extent(struct fiemap_extent_info *fieinfo, u64 logical,
+int fiemap_fill_user_extent(struct fiemap_extent_info *fieinfo, u64 logical,
 			    u64 phys, u64 len, u32 flags)
 {
 	struct fiemap_extent extent;
-	struct fiemap_extent __user *dest = fieinfo->fi_extents_start;
+	struct fiemap_extent __user *dest = fieinfo->fi_cb_data;
 
 	/* only count the extents */
 	if (fieinfo->fi_extents_max == 0) {
@@ -129,6 +114,27 @@ int fiemap_fill_next_extent(struct fiemap_extent_info *fieinfo, u64 logical,
 	if (fieinfo->fi_extents_mapped == fieinfo->fi_extents_max)
 		return 1;
 	return (flags & FIEMAP_EXTENT_LAST) ? 1 : 0;
+}
+
+/**
+ * fiemap_fill_next_extent - Fiemap helper function
+ * @fieinfo:	Fiemap context passed into ->fiemap
+ * @logical:	Extent logical start offset, in bytes
+ * @phys:	Extent physical start offset, in bytes
+ * @len:	Extent length, in bytes
+ * @flags:	FIEMAP_EXTENT flags that describe this extent
+ *
+ * Called from file system ->fiemap callback. Will populate extent
+ * info as passed in via arguments and copy to user memory. On
+ * success, extent count on fieinfo is incremented.
+ *
+ * Returns 0 on success, -errno on error, 1 if this was the last
+ * extent that will fit in user array.
+ */
+int fiemap_fill_next_extent(struct fiemap_extent_info *fieinfo, u64 logical,
+			    u64 phys, u64 len, u32 flags)
+{
+	return fieinfo->fi_cb(fieinfo, logical, phys, len, flags);
 }
 EXPORT_SYMBOL(fiemap_fill_next_extent);
 
@@ -207,12 +213,13 @@ static int ioctl_fiemap(struct file *filp, unsigned long arg)
 
 	fieinfo.fi_flags = fiemap.fm_flags;
 	fieinfo.fi_extents_max = fiemap.fm_extent_count;
-	fieinfo.fi_extents_start = ufiemap->fm_extents;
+	fieinfo.fi_cb_data = ufiemap->fm_extents;
 	fieinfo.fi_start = fiemap.fm_start;
 	fieinfo.fi_len = len;
+	fieinfo.fi_cb = fiemap_fill_user_extent;
 
 	if (fiemap.fm_extent_count != 0 &&
-	    !access_ok(fieinfo.fi_extents_start,
+	    !access_ok(fieinfo.fi_cb_data,
 		       fieinfo.fi_extents_max * sizeof(struct fiemap_extent)))
 		return -EFAULT;
 
