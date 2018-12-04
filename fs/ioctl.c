@@ -77,11 +77,8 @@ static int ioctl_fibmap(struct file *filp, int __user *p)
 	return error;
 }
 
-#define SET_UNKNOWN_FLAGS	(FIEMAP_EXTENT_DELALLOC)
-#define SET_NO_UNMOUNTED_IO_FLAGS	(FIEMAP_EXTENT_DATA_ENCRYPTED)
-#define SET_NOT_ALIGNED_FLAGS	(FIEMAP_EXTENT_DATA_TAIL|FIEMAP_EXTENT_DATA_INLINE)
-int fiemap_fill_user_extent(struct fiemap_extent_info *fieinfo, u64 logical,
-			    u64 phys, u64 len, u32 flags)
+static int fiemap_fill_user_extent(struct fiemap_extent_info *fieinfo,
+			u64 logical, u64 phys, u64 len, u32 flags)
 {
 	struct fiemap_extent extent;
 	struct fiemap_extent __user *dest = fieinfo->fi_cb_data;
@@ -89,17 +86,17 @@ int fiemap_fill_user_extent(struct fiemap_extent_info *fieinfo, u64 logical,
 	/* only count the extents */
 	if (fieinfo->fi_extents_max == 0) {
 		fieinfo->fi_extents_mapped++;
-		return (flags & FIEMAP_EXTENT_LAST) ? 1 : 0;
+		goto out;
 	}
 
 	if (fieinfo->fi_extents_mapped >= fieinfo->fi_extents_max)
 		return 1;
 
-	if (flags & SET_UNKNOWN_FLAGS)
+	if (flags & FIEMAP_EXTENT_DELALLOC)
 		flags |= FIEMAP_EXTENT_UNKNOWN;
-	if (flags & SET_NO_UNMOUNTED_IO_FLAGS)
+	if (flags & FIEMAP_EXTENT_DATA_ENCRYPTED)
 		flags |= FIEMAP_EXTENT_ENCODED;
-	if (flags & SET_NOT_ALIGNED_FLAGS)
+	if (flags & (FIEMAP_EXTENT_DATA_TAIL | FIEMAP_EXTENT_DATA_INLINE))
 		flags |= FIEMAP_EXTENT_NOT_ALIGNED;
 
 	memset(&extent, 0, sizeof(extent));
@@ -115,7 +112,11 @@ int fiemap_fill_user_extent(struct fiemap_extent_info *fieinfo, u64 logical,
 	fieinfo->fi_extents_mapped++;
 	if (fieinfo->fi_extents_mapped == fieinfo->fi_extents_max)
 		return 1;
-	return (flags & FIEMAP_EXTENT_LAST) ? 1 : 0;
+
+out:
+	if (flags & FIEMAP_EXTENT_LAST)
+		return 1;
+	return 0;
 }
 
 /**
@@ -151,12 +152,22 @@ EXPORT_SYMBOL(fiemap_fill_next_extent);
  * flags, the invalid values will be written into the fieinfo structure, and
  * -EBADR is returned, which tells ioctl_fiemap() to return those values to
  * userspace. For this reason, a return code of -EBADR should be preserved.
+ * In case ->fiemap is being used for FIBMAP calls, and the filesystem does not
+ * support it, return -EINVAL.
  *
- * Returns 0 on success, -EBADR on bad flags.
+ * Returns 0 on success, -EBADR on bad flags, -EINVAL for an unsupported FIBMAP
+ * request.
  */
 int fiemap_check_flags(struct fiemap_extent_info *fieinfo, u32 fs_flags)
 {
 	u32 incompat_flags;
+
+	if (fieinfo->fi_flags & FIEMAP_KERNEL_FIBMAP) {
+		if (fs_flags & FIEMAP_KERNEL_FIBMAP)
+			return 0;
+
+		return -EINVAL;
+	}
 
 	incompat_flags = fieinfo->fi_flags & ~(FIEMAP_FLAGS_COMPAT & fs_flags);
 	if (incompat_flags) {
@@ -206,6 +217,10 @@ static int ioctl_fiemap(struct file *filp, unsigned long arg)
 		return -EFAULT;
 
 	if (fiemap.fm_extent_count > FIEMAP_MAX_EXTENTS)
+		return -EINVAL;
+
+	/* Userspace has no access to this flag */
+	if (fiemap.fm_flags & FIEMAP_KERNEL_FIBMAP)
 		return -EINVAL;
 
 	error = fiemap_check_ranges(sb, fiemap.fm_start, fiemap.fm_length,
@@ -318,7 +333,8 @@ int __generic_block_fiemap(struct inode *inode,
 	bool past_eof = false, whole_file = false;
 	int ret = 0;
 
-	ret = fiemap_check_flags(fieinfo, FIEMAP_FLAG_SYNC);
+	ret = fiemap_check_flags(fieinfo,
+				 FIEMAP_FLAG_SYNC | FIEMAP_KERNEL_FIBMAP);
 	if (ret)
 		return ret;
 

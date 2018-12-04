@@ -734,7 +734,7 @@ static int ocfs2_fiemap_inline(struct inode *inode, struct buffer_head *di_bh,
 	return 0;
 }
 
-#define OCFS2_FIEMAP_FLAGS	(FIEMAP_FLAG_SYNC)
+#define OCFS2_FIEMAP_FLAGS	(FIEMAP_FLAG_SYNC | FIEMAP_KERNEL_FIBMAP)
 
 int ocfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo)
 {
@@ -743,6 +743,7 @@ int ocfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo)
 	unsigned int hole_size;
 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
 	u64 len_bytes, phys_bytes, virt_bytes;
+
 	struct buffer_head *di_bh = NULL;
 	struct ocfs2_extent_rec rec;
 	u64 map_start = fieinfo->fi_start;
@@ -751,6 +752,11 @@ int ocfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo)
 	ret = fiemap_check_flags(fieinfo, OCFS2_FIEMAP_FLAGS);
 	if (ret)
 		return ret;
+
+	if (fieinfo->fi_flags & FIEMAP_KERNEL_FIBMAP) {
+		if (ocfs2_is_refcount_inode(inode))
+			return -EINVAL;
+	}
 
 	ret = ocfs2_inode_lock(inode, &di_bh, 0);
 	if (ret) {

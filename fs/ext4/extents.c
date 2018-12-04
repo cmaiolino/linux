@@ -5018,7 +5018,9 @@ static int ext4_find_delayed_extent(struct inode *inode,
 	return next_del;
 }
 /* fiemap flags we can handle specified here */
-#define EXT4_FIEMAP_FLAGS	(FIEMAP_FLAG_SYNC|FIEMAP_FLAG_XATTR)
+#define EXT4_FIEMAP_FLAGS	(FIEMAP_FLAG_SYNC | \
+				 FIEMAP_FLAG_XATTR| \
+				 FIEMAP_KERNEL_FIBMAP)
 
 static int ext4_xattr_fiemap(struct inode *inode,
 				struct fiemap_extent_info *fieinfo)
@@ -5064,6 +5066,9 @@ int ext4_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo)
 
 	if (ext4_has_inline_data(inode)) {
 		int has_inline = 1;
+
+		if (fieinfo->fi_flags & FIEMAP_KERNEL_FIBMAP)
+			return -EINVAL;
 
 		error = ext4_inline_data_fiemap(inode, fieinfo, &has_inline,
 						start, len);

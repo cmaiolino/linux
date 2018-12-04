@@ -2013,7 +2013,11 @@ static int gfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo)
 	if (ret)
 		goto out;
 
-	ret = iomap_fiemap(inode, fieinfo, &gfs2_iomap_ops);
+	if (gfs2_is_stuffed(ip) &&
+	    (fieinfo->fi_flags & FIEMAP_KERNEL_FIBMAP))
+		ret = -EINVAL;
+	else
+		ret = iomap_fiemap(inode, fieinfo, &gfs2_iomap_ops);
 
 	gfs2_glock_dq_uninit(&gh);
 

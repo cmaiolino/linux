@@ -1716,6 +1716,10 @@ extern bool may_open_dev(const struct path *path);
 typedef int (*fiemap_fill_cb)(struct fiemap_extent_info *fieinfo, u64 logical,
 			      u64 phys, u64 len, u32 flags);
 
+#define FIEMAP_KERNEL_FIBMAP 0x10000000		/* FIBMAP call through FIEMAP
+						   interface. This is a kernel
+						   only flag */
+
 struct fiemap_extent_info {
 	unsigned int	fi_flags;		/* Flags as passed from user */
 	u64		fi_start;		/* Logical offset at which

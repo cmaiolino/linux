@@ -20,6 +20,7 @@
 #include "xfs_symlink.h"
 #include "xfs_dir2.h"
 #include "xfs_iomap.h"
+#include "xfs_reflink.h"
 
 #include <linux/xattr.h>
 #include <linux/posix_acl.h>
@@ -1102,7 +1103,12 @@ xfs_vn_fiemap(
 	struct inode			*inode,
 	struct fiemap_extent_info	*fieinfo)
 {
+	struct xfs_inode		*ip = XFS_I(inode);
 	int				error;
+
+	if (fieinfo->fi_flags & FIEMAP_KERNEL_FIBMAP)
+		if (xfs_is_cow_inode(ip) || XFS_IS_REALTIME_INODE(ip))
+			return -EINVAL;
 
 	xfs_ilock(XFS_I(inode), XFS_IOLOCK_SHARED);
 	if (fieinfo->fi_flags & FIEMAP_FLAG_XATTR) {

@@ -1476,6 +1476,9 @@ static int f2fs_xattr_fiemap(struct inode *inode,
 	return (err < 0 ? err : 0);
 }
 
+#define F2FS_FIEMAP_COMPAT	(FIEMAP_FLAG_SYNC | \
+				 FIEMAP_FLAG_XATTR| \
+				 FIEMAP_KERNEL_FIBMAP)
 int f2fs_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo)
 {
 	u64 start = fieinfo->fi_start;
@@ -1493,7 +1496,7 @@ int f2fs_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo)
 			return ret;
 	}
 
-	ret = fiemap_check_flags(fieinfo, FIEMAP_FLAG_SYNC | FIEMAP_FLAG_XATTR);
+	ret = fiemap_check_flags(fieinfo, F2FS_FIEMAP_COMPAT);
 	if (ret)
 		return ret;
 
@@ -1505,6 +1508,11 @@ int f2fs_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo)
 	}
 
 	if (f2fs_has_inline_data(inode)) {
+
+		ret = -EINVAL;
+		if (fieinfo->fi_flags & FIEMAP_KERNEL_FIBMAP)
+			goto out;
+
 		ret = f2fs_inline_data_fiemap(inode, fieinfo, start, len);
 		if (ret != -EAGAIN)
 			goto out;
