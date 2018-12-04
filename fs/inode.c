@@ -1591,6 +1591,81 @@ retry:
 }
 EXPORT_SYMBOL(iput);
 
+static int fiemap_fill_kernel_extent(struct fiemap_extent_info *fieinfo,
+			u64 logical, u64 phys, u64 len, u32 flags)
+{
+	struct fiemap_extent *extent = fieinfo->fi_cb_data;
+
+	/* only count the extents */
+	if (!fieinfo->fi_cb_data) {
+		fieinfo->fi_extents_mapped++;
+		goto out;
+	}
+
+	if (fieinfo->fi_extents_mapped >= fieinfo->fi_extents_max)
+		return 1;
+
+	if (flags & FIEMAP_EXTENT_DELALLOC)
+		flags |= FIEMAP_EXTENT_UNKNOWN;
+	if (flags & FIEMAP_EXTENT_DATA_ENCRYPTED)
+		flags |= FIEMAP_EXTENT_ENCODED;
+	if (flags & (FIEMAP_EXTENT_DATA_TAIL | FIEMAP_EXTENT_DATA_INLINE))
+		flags |= FIEMAP_EXTENT_NOT_ALIGNED;
+
+	extent->fe_logical = logical;
+	extent->fe_physical = phys;
+	extent->fe_length = len;
+	extent->fe_flags = flags;
+
+	fieinfo->fi_extents_mapped++;
+
+	if (fieinfo->fi_extents_mapped == fieinfo->fi_extents_max)
+		return 1;
+
+out:
+	if (flags & FIEMAP_EXTENT_LAST)
+		return 1;
+	return 0;
+}
+
+#define FIBMAP_INCOMPAT_FLAGS \
+	(FIEMAP_EXTENT_UNKNOWN | FIEMAP_EXTENT_DELALLOC | \
+	 FIEMAP_EXTENT_ENCODED | FIEMAP_EXTENT_DATA_ENCRYPTED | \
+	 FIEMAP_EXTENT_NOT_ALIGNED | FIEMAP_EXTENT_DATA_INLINE | \
+	 FIEMAP_EXTENT_DATA_TAIL | FIEMAP_EXTENT_UNWRITTEN | \
+	 FIEMAP_EXTENT_SHARED)
+
+static int bmap_fiemap(struct inode *inode, sector_t *block)
+{
+	struct fiemap_extent_info fieinfo = { 0, };
+	struct fiemap_extent fextent;
+	u64 start = *block << inode->i_blkbits;
+	int error = -EINVAL;
+
+	fextent.fe_logical = 0;
+	fextent.fe_physical = 0;
+	fieinfo.fi_extents_max = 1;
+	fieinfo.fi_extents_mapped = 0;
+	fieinfo.fi_cb_data = &fextent;
+	fieinfo.fi_start = start;
+	fieinfo.fi_len = 1 << inode->i_blkbits;
+	fieinfo.fi_cb = fiemap_fill_kernel_extent;
+	fieinfo.fi_flags = FIEMAP_FLAG_SYNC;
+
+	error = inode->i_op->fiemap(inode, &fieinfo);
+
+	if (error)
+		return error;
+
+	if (fextent.fe_flags & FIBMAP_INCOMPAT_FLAGS)
+		return -EINVAL;
+
+	*block = (fextent.fe_physical +
+		  (start - fextent.fe_logical)) >> inode->i_blkbits;
+
+	return error;
+}
+
 /**
  *	bmap	- find a block number in a file
  *	@inode:  inode owning the block number being requested
@@ -1607,10 +1682,15 @@ EXPORT_SYMBOL(iput);
  */
 int bmap(struct inode *inode, sector_t *block)
 {
-	if (!inode->i_mapping->a_ops->bmap)
+	if (inode->i_op->fiemap)
+		return bmap_fiemap(inode, block);
+
+	if (inode->i_mapping->a_ops->bmap)
+		*block = inode->i_mapping->a_ops->bmap(inode->i_mapping,
+						       *block);
+	else
 		return -EINVAL;
 
-	*block = inode->i_mapping->a_ops->bmap(inode->i_mapping, *block);
 	return 0;
 }
 EXPORT_SYMBOL(bmap);

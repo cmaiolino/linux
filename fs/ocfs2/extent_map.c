@@ -743,6 +743,7 @@ int ocfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo)
 	unsigned int hole_size;
 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
 	u64 len_bytes, phys_bytes, virt_bytes;
+
 	struct buffer_head *di_bh = NULL;
 	struct ocfs2_extent_rec rec;
 	u64 map_start = fieinfo->fi_start;

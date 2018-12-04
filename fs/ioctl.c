@@ -77,11 +77,8 @@ static int ioctl_fibmap(struct file *filp, int __user *p)
 	return error;
 }
 
-#define SET_UNKNOWN_FLAGS	(FIEMAP_EXTENT_DELALLOC)
-#define SET_NO_UNMOUNTED_IO_FLAGS	(FIEMAP_EXTENT_DATA_ENCRYPTED)
-#define SET_NOT_ALIGNED_FLAGS	(FIEMAP_EXTENT_DATA_TAIL|FIEMAP_EXTENT_DATA_INLINE)
-int fiemap_fill_user_extent(struct fiemap_extent_info *fieinfo, u64 logical,
-			    u64 phys, u64 len, u32 flags)
+static int fiemap_fill_user_extent(struct fiemap_extent_info *fieinfo,
+			u64 logical, u64 phys, u64 len, u32 flags)
 {
 	struct fiemap_extent extent;
 	struct fiemap_extent __user *dest = fieinfo->fi_cb_data;
@@ -89,17 +86,17 @@ int fiemap_fill_user_extent(struct fiemap_extent_info *fieinfo, u64 logical,
 	/* only count the extents */
 	if (fieinfo->fi_extents_max == 0) {
 		fieinfo->fi_extents_mapped++;
-		return (flags & FIEMAP_EXTENT_LAST) ? 1 : 0;
+		goto out;
 	}
 
 	if (fieinfo->fi_extents_mapped >= fieinfo->fi_extents_max)
 		return 1;
 
-	if (flags & SET_UNKNOWN_FLAGS)
+	if (flags & FIEMAP_EXTENT_DELALLOC)
 		flags |= FIEMAP_EXTENT_UNKNOWN;
-	if (flags & SET_NO_UNMOUNTED_IO_FLAGS)
+	if (flags & FIEMAP_EXTENT_DATA_ENCRYPTED)
 		flags |= FIEMAP_EXTENT_ENCODED;
-	if (flags & SET_NOT_ALIGNED_FLAGS)
+	if (flags & (FIEMAP_EXTENT_DATA_TAIL | FIEMAP_EXTENT_DATA_INLINE))
 		flags |= FIEMAP_EXTENT_NOT_ALIGNED;
 
 	memset(&extent, 0, sizeof(extent));
@@ -115,7 +112,11 @@ int fiemap_fill_user_extent(struct fiemap_extent_info *fieinfo, u64 logical,
 	fieinfo->fi_extents_mapped++;
 	if (fieinfo->fi_extents_mapped == fieinfo->fi_extents_max)
 		return 1;
-	return (flags & FIEMAP_EXTENT_LAST) ? 1 : 0;
+
+out:
+	if (flags & FIEMAP_EXTENT_LAST)
+		return 1;
+	return 0;
 }
 
 /**
