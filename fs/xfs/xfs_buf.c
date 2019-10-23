@@ -209,7 +209,7 @@ _xfs_buf_alloc(
 	int			error;
 	int			i;
 
-	bp = kmem_zone_zalloc(xfs_buf_zone, KM_NOFS);
+	bp = kmem_cache_zalloc(xfs_buf_zone, GFP_KERNEL | __GFP_NOFAIL);
 	if (unlikely(!bp))
 		return NULL;
 
