@@ -1214,6 +1214,7 @@ xfs_fc_parse_param(
 		return 0;
 	case Opt_sunit:
 		mp->m_dalign = result.uint_32;
+		mp->m_flags |= XFS_MOUNT_ALIGN;
 		return 0;
 	case Opt_swidth:
 		mp->m_swidth = result.uint_32;
