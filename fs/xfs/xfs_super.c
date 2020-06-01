@@ -193,11 +193,11 @@ xfs_fs_show_options(
 		seq_show_option(m, "rtdev", mp->m_rtname);
 
 	if (mp->m_dalign > 0)
-		seq_printf(m, ",sunit=%d",
-				(int)XFS_FSB_TO_BB(mp, mp->m_dalign));
+		seq_printf(m, ",sunit=%u",
+				XFS_FSB_TO_BB(mp, mp->m_dalign));
 	if (mp->m_swidth > 0)
-		seq_printf(m, ",swidth=%d",
-				(int)XFS_FSB_TO_BB(mp, mp->m_swidth));
+		seq_printf(m, ",swidth=%u",
+				XFS_FSB_TO_BB(mp, mp->m_swidth));
 
 	if (mp->m_qflags & (XFS_UQUOTA_ACCT|XFS_UQUOTA_ENFD))
 		seq_puts(m, ",usrquota");
@@ -1338,7 +1338,7 @@ xfs_fc_validate_params(
 
 	if (mp->m_dalign && (mp->m_swidth % mp->m_dalign != 0)) {
 		xfs_warn(mp,
-	"stripe width (%d) must be a multiple of the stripe unit (%d)",
+	"stripe width (%u) must be a multiple of the stripe unit (%u)",
 			mp->m_swidth, mp->m_dalign);
 		return -EINVAL;
 	}

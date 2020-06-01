@@ -3477,7 +3477,7 @@ xfs_bmap_btalloc(
 	int		isaligned;
 	int		tryagain;
 	int		error;
-	int		stripe_align;
+	uint32_t	stripe_align;
 
 	ASSERT(ap->length);
 	orig_offset = ap->offset;

@@ -119,8 +119,8 @@ typedef struct xfs_mount {
 	xfs_extlen_t		m_ag_prealloc_blocks; /* reserved ag blocks */
 	uint			m_alloc_set_aside; /* space we can't use */
 	uint			m_ag_max_usable; /* max space per AG */
-	int			m_dalign;	/* stripe unit */
-	int			m_swidth;	/* stripe width */
+	uint32_t		m_dalign;	/* stripe unit */
+	uint32_t		m_swidth;	/* stripe width */
 	xfs_agnumber_t		m_maxagi;	/* highest inode alloc group */
 	uint			m_allocsize_log;/* min write size log bytes */
 	uint			m_allocsize_blocks; /* min write size blocks */

@@ -368,7 +368,7 @@ release_buf:
 static inline int
 xfs_check_new_dalign(
 	struct xfs_mount	*mp,
-	int			new_dalign,
+	uint32_t		new_dalign,
 	bool			*update_sb)
 {
 	struct xfs_sb		*sbp = &mp->m_sb;
@@ -432,7 +432,7 @@ xfs_validate_new_dalign(
 			mp->m_swidth = XFS_BB_TO_FSBT(mp, mp->m_swidth);
 		} else {
 			xfs_warn(mp,
-		"alignment check failed: sunit(%d) less than bsize(%d)",
+		"alignment check failed: sunit(%u) less than bsize(%d)",
 				 mp->m_dalign, mp->m_sb.sb_blocksize);
 			return -EINVAL;
 		}

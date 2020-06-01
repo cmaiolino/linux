@@ -2913,7 +2913,7 @@ xfs_ialloc_setup_geometry(
 xfs_ino_t
 xfs_ialloc_calc_rootino(
 	struct xfs_mount	*mp,
-	int			sunit)
+	uint32_t		sunit)
 {
 	struct xfs_ino_geometry	*igeo = M_IGEO(mp);
 	xfs_agblock_t		first_bno;
