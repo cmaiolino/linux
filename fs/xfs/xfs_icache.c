@@ -35,15 +35,20 @@ xfs_inode_alloc(
 	xfs_ino_t		ino)
 {
 	struct xfs_inode	*ip;
+	gfp_t			gfp_mask = GFP_KERNEL;
 
 	/*
-	 * if this didn't occur in transactions, we could use
-	 * KM_MAYFAIL and return NULL here on ENOMEM. Set the
-	 * code up to do this anyway.
+	 * If this is inside a transaction, we can not fail here,
+	 * otherwise we can return NULL on ENOMEM.
 	 */
-	ip = kmem_zone_alloc(xfs_inode_zone, 0);
+
+	if (current->flags & PF_MEMALLOC_NOFS)
+		gfp_mask |= __GFP_NOFAIL;
+
+	ip = kmem_cache_alloc(xfs_inode_zone, gfp_mask);
 	if (!ip)
 		return NULL;
+
 	if (inode_init_always(mp->m_super, VFS_I(ip))) {
 		kmem_cache_free(xfs_inode_zone, ip);
 		return NULL;
