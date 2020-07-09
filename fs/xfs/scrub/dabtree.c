@@ -476,7 +476,8 @@ xchk_da_btree(
 	ds.dargs.whichfork = whichfork;
 	ds.dargs.trans = sc->tp;
 	ds.dargs.op_flags = XFS_DA_OP_OKNOENT;
-	ds.state = xfs_da_state_alloc();
+	ds.state = kmem_cache_zalloc(xfs_da_state_zone,
+				     GFP_NOFS | __GFP_NOFAIL);
 	ds.state->args = &ds.dargs;
 	ds.state->mp = mp;
 	ds.sc = sc;

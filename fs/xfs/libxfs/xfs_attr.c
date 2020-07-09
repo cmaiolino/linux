@@ -750,7 +750,7 @@ xfs_attr_node_addname(
 	dp = args->dp;
 	mp = dp->i_mount;
 restart:
-	state = xfs_da_state_alloc();
+	state = kmem_cache_zalloc(xfs_da_state_zone, GFP_NOFS | __GFP_NOFAIL);
 	state->args = args;
 	state->mp = mp;
 
@@ -899,7 +899,8 @@ restart:
 		 * attr, not the "new" one.
 		 */
 		args->attr_filter |= XFS_ATTR_INCOMPLETE;
-		state = xfs_da_state_alloc();
+		state = kmem_cache_zalloc(xfs_da_state_zone,
+					  GFP_NOFS | __GFP_NOFAIL);
 		state->args = args;
 		state->mp = mp;
 		state->inleaf = 0;
@@ -975,7 +976,7 @@ xfs_attr_node_removename(
 	 * Tie a string around our finger to remind us where we are.
 	 */
 	dp = args->dp;
-	state = xfs_da_state_alloc();
+	state = kmem_cache_zalloc(xfs_da_state_zone, GFP_NOFS | __GFP_NOFAIL);
 	state->args = args;
 	state->mp = dp->i_mount;
 
@@ -1207,7 +1208,7 @@ xfs_attr_node_get(xfs_da_args_t *args)
 
 	trace_xfs_attr_node_get(args);
 
-	state = xfs_da_state_alloc();
+	state = kmem_cache_zalloc(xfs_da_state_zone, GFP_NOFS | __GFP_NOFAIL);
 	state->args = args;
 	state->mp = args->dp->i_mount;
 

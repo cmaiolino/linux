@@ -75,16 +75,6 @@ STATIC int	xfs_da3_blk_unlink(xfs_da_state_t *state,
 kmem_zone_t *xfs_da_state_zone;	/* anchor for state struct zone */
 
 /*
- * Allocate a dir-state structure.
- * We don't put them on the stack since they're large.
- */
-xfs_da_state_t *
-xfs_da_state_alloc(void)
-{
-	return kmem_cache_zalloc(xfs_da_state_zone, GFP_NOFS | __GFP_NOFAIL);
-}
-
-/*
  * Kill the altpath contents of a da-state structure.
  */
 STATIC void
