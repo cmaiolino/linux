@@ -750,9 +750,7 @@ xfs_attr_node_addname(
 	dp = args->dp;
 	mp = dp->i_mount;
 restart:
-	state = xfs_da_state_alloc();
-	state->args = args;
-	state->mp = mp;
+	state = xfs_da_state_alloc(args);
 
 	/*
 	 * Search to see if name already exists, and get back a pointer
@@ -899,9 +897,8 @@ restart:
 		 * attr, not the "new" one.
 		 */
 		args->attr_filter |= XFS_ATTR_INCOMPLETE;
-		state = xfs_da_state_alloc();
-		state->args = args;
-		state->mp = mp;
+		state = xfs_da_state_alloc(args);
+
 		state->inleaf = 0;
 		error = xfs_da3_node_lookup_int(state, &retval);
 		if (error)
@@ -975,9 +972,7 @@ xfs_attr_node_removename(
 	 * Tie a string around our finger to remind us where we are.
 	 */
 	dp = args->dp;
-	state = xfs_da_state_alloc();
-	state->args = args;
-	state->mp = dp->i_mount;
+	state = xfs_da_state_alloc(args);
 
 	/*
 	 * Search to see if name exists, and get back a pointer to it.
@@ -1207,9 +1202,7 @@ xfs_attr_node_get(xfs_da_args_t *args)
 
 	trace_xfs_attr_node_get(args);
 
-	state = xfs_da_state_alloc();
-	state->args = args;
-	state->mp = args->dp->i_mount;
+	state = xfs_da_state_alloc(args);
 
 	/*
 	 * Search to see if name exists, and get back a pointer to it.

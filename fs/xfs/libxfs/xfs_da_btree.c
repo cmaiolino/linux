@@ -79,9 +79,13 @@ kmem_zone_t *xfs_da_state_zone;	/* anchor for state struct zone */
  * We don't put them on the stack since they're large.
  */
 xfs_da_state_t *
-xfs_da_state_alloc(void)
+xfs_da_state_alloc(xfs_da_args_t *args)
 {
-	return kmem_cache_zalloc(xfs_da_state_zone, GFP_NOFS | __GFP_NOFAIL);
+	xfs_da_state_t *state = kmem_cache_zalloc(xfs_da_state_zone,
+						  GFP_NOFS | __GFP_NOFAIL);
+	state->args = args;
+	state->mp = args->dp->i_mount;
+	return state;
 }
 
 /*
